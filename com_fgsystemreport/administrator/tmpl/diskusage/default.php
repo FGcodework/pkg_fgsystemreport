@@ -8,6 +8,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 
 $dirs              = $this->dirs ?? [];
@@ -31,14 +32,20 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=
     . '&exclude=' . urlencode($excludeRaw);
 ?>
 
+<?php GrowthAlertHelper::renderBanner(); ?>
 <div class="card" id="jc-disk-usage">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="m-0" style="font-size:16px;">
             <?php echo Text::sprintf('COM_FGSYSTEMREPORT_DISKUSAGE_TOP_FOLDERS', $topN); ?>
         </h3>
-        <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_SCANNING')); ?>" href="<?php echo htmlspecialchars($rescanUrl); ?>">
-            <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_RESCAN'); ?>
-        </a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_SCANNING')); ?>" href="<?php echo htmlspecialchars($rescanUrl); ?>">
+                <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_RESCAN'); ?>
+            </a>
+            <a class="btn btn-sm btn-outline-secondary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_SENDING')); ?>" href="<?php echo htmlspecialchars('index.php?option=com_fgsystemreport&task=fgsystemreport.sendTestMail&' . \Joomla\CMS\Session\Session::getFormToken() . '=1'); ?>" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_TIP')); ?>">
+                <span class="icon-mail me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_BUTTON'); ?>
+            </a>
+        </div>
     </div>
     <div class="card-body">
         <form method="get" action="index.php" class="row g-2 align-items-end mb-3">

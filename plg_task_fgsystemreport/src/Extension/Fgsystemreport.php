@@ -48,6 +48,10 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'method'          => 'notifySecurityCheck',
             'form'            => 'security_check_notify',
         ],
+        'fgsystemreport.disk_growth_check' => [
+            'langConstPrefix' => 'PLG_TASK_FGSYSTEMREPORT_DISKGROWTH',
+            'method'          => 'diskGrowthCheck',
+        ],
     ];
 
     /**
@@ -65,6 +69,40 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'onExecuteTask'        => 'standardRoutineHandler',
             'onContentPrepareForm' => 'enhanceTaskItemForm',
         ];
+    }
+
+    /**
+     * Run a fresh Disk Usage scan. The component records the snapshot,
+     * compares it with the previous one and raises the folder growth alert
+     * (banner, private message and, if enabled, e-mail).
+     *
+     * @param   ExecuteTaskEvent  $event  The task execution event
+     *
+     * @return  int
+     */
+    protected function diskGrowthCheck(ExecuteTaskEvent $event): int
+    {
+        $helperClass = '\\Fg\\Component\\Fgsystemreport\\Administrator\\Helper\\FgsystemreportHelper';
+
+        if (!class_exists($helperClass) || !class_exists('\\Fg\\Component\\Fgsystemreport\\Administrator\\Helper\\GrowthAlertHelper')) {
+            $this->logTask('The FG System Report component (version 1.6.0 or newer) is not installed on this site - cannot run.', 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        try {
+            $helperClass::$scanSource = 'scheduler';
+            $exclude                  = ['cache', 'tmp', 'logs', '.git', '.svn', 'node_modules'];
+            $result                   = $helperClass::getDiskUsageDisplayData($exclude, 50, true);
+        } catch (\Throwable $e) {
+            $this->logTask('Disk scan failed: ' . $e->getMessage(), 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        $this->logTask('Disk scan finished (' . count($result['dirs'] ?? []) . ' folders recorded).', 'info');
+
+        return Status::OK;
     }
 
     /**

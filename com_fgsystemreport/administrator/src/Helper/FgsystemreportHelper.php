@@ -1843,6 +1843,9 @@ class FgsystemreportHelper
 	 *
 	 * @return  array
 	 */
+	/** 'manual' or 'scheduler' - who triggered the current disk scan. */
+	public static string $scanSource = 'manual';
+
 	public static function scanDiskUsageWithTimestamp(string $path, array $exclude, int $topN): array
 	{
 		$scan         = self::scanDiskUsage($path, $exclude, $topN);
@@ -1851,6 +1854,7 @@ class FgsystemreportHelper
 		// This only runs on a real scan (cache miss / forced rescan), so each
 		// run is one snapshot for the Disk Usage comparison.
 		DiskHistoryHelper::record($exclude, $scan);
+		GrowthAlertHelper::check($exclude, self::$scanSource);
 
 		return $scan;
 	}

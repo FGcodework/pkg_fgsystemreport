@@ -223,6 +223,37 @@ class FgsystemreportController extends FormController
         $app->close();
     }
 
+    /**
+     * Dismiss the folder growth banner.
+     */
+    public function dismissGrowthAlert()
+    {
+        $this->requireAccess();
+        Session::checkToken('get') or die(Text::_('JINVALID_TOKEN'));
+        \Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::dismissAll();
+        $this->setRedirect(Route::_('index.php?option=com_fgsystemreport&view=diskusage', false));
+    }
+
+    /**
+     * Send a test e-mail through the site mailer (Global Configuration).
+     */
+    public function sendTestMail()
+    {
+        $this->requireAccess();
+        Session::checkToken('get') or die(Text::_('JINVALID_TOKEN'));
+        $error = null;
+        $ok    = \Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::sendMail(null, $error);
+        $app   = Factory::getApplication();
+
+        if ($ok) {
+            $app->enqueueMessage(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_TEST_OK', implode(', ', \Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::recipients())), 'message');
+        } else {
+            $app->enqueueMessage(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_TEST_FAIL', (string) $error), 'error');
+        }
+
+        $this->setRedirect(Route::_('index.php?option=com_fgsystemreport&view=diskusage', false));
+    }
+
     public function findUpdates()
     {
         $this->requireAccess();

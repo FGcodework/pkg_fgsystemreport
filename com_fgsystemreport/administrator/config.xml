@@ -27,6 +27,30 @@
         />
     </fieldset>
 
+    <fieldset name="diskgrowth" label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_FIELDSET" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_FIELDSET_DESC">
+        <field name="growth_alert_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+            label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_ENABLED_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_ENABLED_DESC">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+        <field name="growth_alert_mb" type="text" filter="integer" default="100"
+            label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_MB_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_MB_DESC" />
+        <field name="growth_alert_percent" type="text" filter="integer" default="25"
+            label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_PERCENT_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_PERCENT_DESC" />
+        <field name="growth_alert_message" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+            label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_MESSAGE_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_MESSAGE_DESC">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+        <field name="growth_alert_email" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+            label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_EMAIL_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_EMAIL_DESC">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+        <field name="growth_alert_recipients" type="text" default=""
+            label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_RECIPIENTS_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_RECIPIENTS_DESC" hint="admin@example.com, other@example.com" />
+    </fieldset>
+
     <fieldset name="permissions" description="JCONFIG_PERMISSIONS_DESC" label="JCONFIG_PERMISSIONS_LABEL">
         <field name="rules" type="rules" component="com_fgsystemreport" class="inputbox" filter="rules" validate="rules" label="JCONFIG_PERMISSIONS_LABEL" section="component" />
 	</fieldset>

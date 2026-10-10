@@ -1,6 +1,7 @@
 <?php
 defined('_JEXEC') or die;
 use Joomla\CMS\Language\Text;
+\Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::renderBanner();
 ?>
 <style>
 .jc-audit-wrapper {

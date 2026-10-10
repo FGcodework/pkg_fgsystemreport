@@ -28,6 +28,25 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.6.0]
+
+### Added
+- Folder growth alerts. After each Disk Usage scan the new snapshot is
+  compared with the previous one; folders that grew by more than a
+  configurable amount (MB) or percentage (percent rule ignores folders that
+  grew by less than 10 MB) raise an alert. Only folders present in both
+  snapshots are considered. New Options tab "Folder growth alerts".
+- Alert channels, none of which needs PHP mail(): a dismissible warning
+  banner on the dashboard and Disk Usage pages, a private message to all
+  Super Users (Users - Private Messages), and optionally an e-mail through
+  the site mailer (Global Configuration, so SMTP works). E-mail is sent only
+  for scheduled scans.
+- "Send test e-mail" button on the Disk Usage page; shows the real error
+  text when sending fails.
+- New table `#__fgsystemreport_alert` (created lazily, dropped on uninstall).
+- Task plugin 1.3.0: new scheduled task "FG System Report: Disk Growth
+  Check" (fresh Disk Usage scan + alert evaluation; recommended daily).
+
 ## [1.5.1]
 
 ### Changed
