@@ -30,6 +30,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.zip \
+          gh release create "$GITHUB_REF_NAME" dist/pkg_*.zip \
             --title "FG System Report ${GITHUB_REF_NAME#v}" \
             --notes "See [CHANGELOG](https://github.com/FGcodework/pkg_fgsystemreport/blob/master/com_fgsystemreport/CHANGELOG.md). Install **pkg_fgsystemreport_${GITHUB_REF_NAME}.zip** (component + scheduled task plugin)."
