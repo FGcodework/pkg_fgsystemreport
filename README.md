@@ -29,7 +29,6 @@ Updates arrive through Joomla's normal *System → Update → Extensions* (updat
 
 After installing, create a task *"FG System Report: Security Check Notification"* under *System → Scheduled Tasks* (e.g. daily) to get history and notifications.
 
-Standalone `com_…` / `plg_task_…` ZIPs are attached to each release too, but the package is the recommended way.
 
 ## Repository layout
 

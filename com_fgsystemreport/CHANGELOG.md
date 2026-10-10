@@ -28,6 +28,17 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.4.10]
+
+### Changed
+- Release workflow attaches only the package (`pkg_fgsystemreport_vX.X.X.zip`)
+  to GitHub releases; the standalone component/plugin ZIPs no longer appear
+  there (the component has no update server of its own, only the package
+  does). `build.sh` still builds them into `dist/`.
+- README: removed the note about standalone ZIPs, `bash build.sh` in the
+  release steps.
+- Maintenance release; also used to verify the update path 1.4.9 -> 1.4.10.
+
 ## [1.4.9]
 
 ### Changed

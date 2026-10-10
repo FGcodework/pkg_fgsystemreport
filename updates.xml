@@ -7,11 +7,11 @@
         <description>FG System Report - audit and monitoring toolkit (component + scheduled task plugin)</description>
         <element>pkg_fgsystemreport</element>
         <type>package</type>
-        <version>1.4.9</version>
+        <version>1.4.10</version>
         <client>site</client>
-        <infourl title="FG System Report 1.4.9">https://github.com/FGcodework/pkg_fgsystemreport/releases/tag/v1.4.9</infourl>
+        <infourl title="FG System Report 1.4.10">https://github.com/FGcodework/pkg_fgsystemreport/releases/tag/v1.4.10</infourl>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/FGcodework/pkg_fgsystemreport/releases/download/v1.4.9/pkg_fgsystemreport_v1.4.9.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/FGcodework/pkg_fgsystemreport/releases/download/v1.4.10/pkg_fgsystemreport_v1.4.10.zip</downloadurl>
         </downloads>
         <tags>
             <tag>stable</tag>
