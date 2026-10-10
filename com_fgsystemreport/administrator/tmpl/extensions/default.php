@@ -118,6 +118,11 @@ $renderRow = function ($ext, $index) {
         </h3>
         <div class="d-flex align-items-center gap-2">
             <input type="search" id="jc-ext-filter" autocomplete="off" name="jc-ext-filter-nofill" class="form-control form-control-sm" placeholder="<?php echo Text::_('COM_FGSYSTEMREPORT_EXT_FILTER_PLACEHOLDER'); ?>" style="width:180px;">
+            <?php if ($updCount) : ?>
+            <a class="btn btn-sm btn-danger" href="index.php?option=com_installer&amp;view=update&amp;filter[search]=" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_EXT_UPDATE_ALL_TIP')); ?>">
+                <span class="icon-upload me-1" aria-hidden="true"></span><?php echo Text::sprintf('COM_FGSYSTEMREPORT_EXT_UPDATE_ALL', $updCount); ?>
+            </a>
+            <?php endif; ?>
             <a class="btn btn-sm btn-outline-success" href="<?php echo $csvUrl; ?>">
                 <span class="icon-download me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_EXPORT_CSV'); ?>
             </a>

@@ -14,6 +14,17 @@ $total             = $this->total ?? 0;
 $scanTimeFormatted = $this->scanTimeFormatted ?? null;
 $topN              = (int) ($this->topN ?? 10);
 $excludeRaw        = (string) ($this->excludeRaw ?? '');
+$comparison        = $this->comparison ?? null;
+$prevScanFormatted = $this->prevScanFormatted ?? null;
+
+// Signed size difference, e.g. "+12.4 MB" / "-3.1 MB"; empty for no change
+$fmtDelta = static function (int $d): string {
+    if ($d === 0) {
+        return '&ndash;';
+    }
+    $cls = $d > 0 ? 'text-danger' : 'text-success';
+    return '<span class="' . $cls . '">' . ($d > 0 ? '+' : '&minus;') . FgsystemreportHelper::formatFileSize(abs($d)) . '</span>';
+};
 
 $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=' . $topN
     . '&exclude=' . urlencode($excludeRaw);
@@ -56,6 +67,9 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=
                     <tr>
                         <th><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_COL_PATH'); ?></th>
                         <th class="text-end"><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_COL_SIZE'); ?></th>
+                        <?php if ($comparison !== null) : ?>
+                            <th class="text-end"><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_COL_CHANGE'); ?></th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -65,6 +79,15 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=
                                 <?php echo htmlspecialchars(substr($dir, strlen(JPATH_ROOT)) ?: '/'); ?>
                             </td>
                             <td class="text-end text-nowrap"><?php echo FgsystemreportHelper::formatFileSize($size); ?></td>
+                            <?php if ($comparison !== null) : ?>
+                                <td class="text-end text-nowrap">
+                                    <?php if (($comparison['deltas'][$dir] ?? null) === null) : ?>
+                                        <span class="badge bg-info text-dark"><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_NEW_IN_LIST'); ?></span>
+                                    <?php else : ?>
+                                        <?php echo $fmtDelta((int) $comparison['deltas'][$dir]); ?>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -72,14 +95,24 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=
                     <tr>
                         <th><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_TOTAL'); ?></th>
                         <th class="text-end text-nowrap"><?php echo FgsystemreportHelper::formatFileSize($total); ?></th>
+                        <?php if ($comparison !== null) : ?>
+                            <th class="text-end text-nowrap"><?php echo $fmtDelta((int) $comparison['total_delta']); ?></th>
+                        <?php endif; ?>
                     </tr>
                 </tfoot>
             </table>
             <?php if ($scanTimeFormatted !== null) : ?>
-                <p class="small text-muted mb-0">
+                <p class="text-muted mb-1">
                     <?php echo Text::sprintf('COM_FGSYSTEMREPORT_DISKUSAGE_LAST_SCANNED', $scanTimeFormatted); ?>
                 </p>
             <?php endif; ?>
+            <p class="text-muted mb-0">
+                <?php if ($comparison !== null && $prevScanFormatted !== null) : ?>
+                    <?php echo Text::sprintf('COM_FGSYSTEMREPORT_DISKUSAGE_COMPARED_TO', $prevScanFormatted); ?>
+                <?php else : ?>
+                    <?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_NO_PREVIOUS'); ?>
+                <?php endif; ?>
+            </p>
         <?php endif; ?>
     </div>
 </div>

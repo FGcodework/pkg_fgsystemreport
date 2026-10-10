@@ -1848,6 +1848,10 @@ class FgsystemreportHelper
 		$scan         = self::scanDiskUsage($path, $exclude, $topN);
 		$scan['time'] = time();
 
+		// This only runs on a real scan (cache miss / forced rescan), so each
+		// run is one snapshot for the Disk Usage comparison.
+		DiskHistoryHelper::record($exclude, $scan);
+
 		return $scan;
 	}
 

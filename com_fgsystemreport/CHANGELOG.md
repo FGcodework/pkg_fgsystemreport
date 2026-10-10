@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.5.0]
+
+### Added
+- Disk Usage: comparison with the previous scan. New "Change" column per
+  folder (red = growth, green = shrink, "new in list" badge), total change
+  in the footer and a note showing which scan it is compared against.
+  Scans are stored in the new table `#__fgsystemreport_diskscan`
+  (created lazily; dropped on uninstall; pruned by the history retention
+  setting, max 60 snapshots per exclude-set).
+- Installed Extensions: "Update all (N)" button when updates are available.
+  Opens Joomla's update list with filters cleared (select all, then Update).
+
 ## [1.4.10]
 
 ### Changed

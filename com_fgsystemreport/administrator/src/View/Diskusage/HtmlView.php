@@ -14,6 +14,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\DiskHistoryHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 
 /**
@@ -45,6 +46,12 @@ class HtmlView extends BaseHtmlView
      *      from what the site is actually configured to show.
      */
     public $scanTimeFormatted = null;
+
+    /** @var array|null Comparison with the previous scan (see DiskHistoryHelper::compare) */
+    public $comparison = null;
+
+    /** @var string|null Previous scan time, formatted in the site time zone */
+    public $prevScanFormatted = null;
 
     /** @var int */
     public $topN = 10;
@@ -86,6 +93,25 @@ class HtmlView extends BaseHtmlView
         $this->dirs     = $result['dirs'] ?? [];
         $this->total    = $result['total'] ?? 0;
         $this->scanTime = $result['time'] ?? null;
+
+        // Comparison with the previous real scan using the same exclude list
+        [$currentSnap, $prevSnap] = DiskHistoryHelper::getLatestTwo($exclude);
+
+        if ($currentSnap !== null && $prevSnap !== null) {
+            $this->comparison = DiskHistoryHelper::compare($this->dirs, (int) $this->total, $prevSnap);
+
+            if ($this->comparison !== null) {
+                $pd = Factory::getDate($prevSnap->scanned_at);
+
+                try {
+                    $pd->setTimezone(new \DateTimeZone($app->get('offset', 'UTC')));
+                } catch (\Exception $e) {
+                    // fall back to UTC
+                }
+
+                $this->prevScanFormatted = $pd->format('d.m.Y H:i', true);
+            }
+        }
 
         if ($this->scanTime !== null) {
             // Joomla\CMS\Date::setTimezone() is not plain DateTime::setTimezone() -
