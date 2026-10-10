@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="component" version="4.0" method="upgrade">
+    <name>com_fgsystemreport</name>
+    <creationDate>2025-10-13</creationDate>
+    <copyright>2025 Abdulgani (original work); FG rebrand and modifications 2026 Fero</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <author>Fero</author>
+    <authorEmail></authorEmail>
+    <authorUrl></authorUrl>
+    <version>1.4.9</version>
+    <description>FG System Report - audit and monitoring toolkit for Joomla 6, maintained by Fero. Originally forked from "JC System Report" by Abdulgani (https://www.joomconsultant.com/), extensively rewritten and rebranded since. Dashboard, Installed Extensions, Security Check (with a site health score, a history/trend page and scheduled email notifications via the companion plg_task_fgsystemreport plugin), Disk Usage (adapted from Fero's own mod_jm_treesize module), Icon Classes reference, PDF reports, CSV/JSON export, and Slovak and German localisation.</description>
+    <namespace path="src">Fg\Component\Fgsystemreport</namespace>
+
+    <!-- No <updateservers> here on purpose: updates are delivered through the
+         pkg_fgsystemreport package (see ../pkg_fgsystemreport and ../updates.xml). -->
+
+    <uninstall>
+        <sql>
+            <file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
+            <file driver="postgresql" charset="utf8">sql/uninstall.postgresql.sql</file>
+        </sql>
+    </uninstall>
+
+    <administration>
+        <menu>com_fgsystemreport</menu>
+        <submenu>
+            <menu link="option=com_fgsystemreport&amp;view=fgsystemreport">COM_FGSYSTEMREPORT_TITLE_DASHBOARD</menu>
+            <menu link="option=com_fgsystemreport&amp;view=extensions">COM_FGSYSTEMREPORT_TITLE_EXTENSIONS</menu>
+            <menu link="option=com_fgsystemreport&amp;view=security">COM_FGSYSTEMREPORT_TITLE_SECURITY</menu>
+            <menu link="option=com_fgsystemreport&amp;view=history">COM_FGSYSTEMREPORT_TITLE_HISTORY</menu>
+            <menu link="option=com_fgsystemreport&amp;view=icons">COM_FGSYSTEMREPORT_TITLE_ICONS</menu>
+            <menu link="option=com_fgsystemreport&amp;view=diskusage">COM_FGSYSTEMREPORT_TITLE_DISKUSAGE</menu>
+        </submenu>
+        <files folder="administrator">
+            <filename>access.xml</filename>
+            <filename>config.xml</filename>
+            <folder>assets</folder>
+            <folder>src</folder>
+            <folder>tmpl</folder>
+            <folder>services</folder>
+            <folder>sql</folder>
+        </files>
+        <languages folder="administrator/languages">
+            <language tag="en-GB">en-GB/com_fgsystemreport.ini</language>
+            <language tag="en-GB">en-GB/com_fgsystemreport.sys.ini</language>
+            <language tag="de-DE">de-DE/com_fgsystemreport.ini</language>
+            <language tag="de-DE">de-DE/com_fgsystemreport.sys.ini</language>
+            <language tag="sk-SK">sk-SK/com_fgsystemreport.ini</language>
+            <language tag="sk-SK">sk-SK/com_fgsystemreport.sys.ini</language>
+        </languages>
+    </administration>
+</extension>

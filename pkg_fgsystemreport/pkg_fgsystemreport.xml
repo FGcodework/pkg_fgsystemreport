@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="package" version="4.0" method="upgrade">
+    <name>PKG_FGSYSTEMREPORT</name>
+    <packagename>fgsystemreport</packagename>
+    <creationDate>2026-10-10</creationDate>
+    <author>Fero</author>
+    <copyright>2026 Fero</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <version>1.4.9</version>
+    <description>PKG_FGSYSTEMREPORT_XML_DESCRIPTION</description>
+    <authorUrl>https://github.com/FGcodework/pkg_fgsystemreport</authorUrl>
+    <scriptfile>script.php</scriptfile>
+
+    <files folder="packages">
+        <file type="component" id="com_fgsystemreport">com_fgsystemreport_v1.4.9.zip</file>
+        <file type="plugin" id="fgsystemreport" group="task">plg_task_fgsystemreport_v1.2.1.zip</file>
+    </files>
+
+    <updateservers>
+        <server type="extension" priority="1" name="FG System Report">https://raw.githubusercontent.com/FGcodework/pkg_fgsystemreport/master/updates.xml</server>
+    </updateservers>
+
+    <languages folder="language">
+        <language tag="en-GB">en-GB/pkg_fgsystemreport.sys.ini</language>
+        <language tag="de-DE">de-DE/pkg_fgsystemreport.sys.ini</language>
+        <language tag="sk-SK">sk-SK/pkg_fgsystemreport.sys.ini</language>
+    </languages>
+</extension>

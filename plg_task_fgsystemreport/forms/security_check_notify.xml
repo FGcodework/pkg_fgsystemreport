@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fieldset name="taskParams">
+        <field
+            name="recipients"
+            type="text"
+            label="PLG_TASK_FGSYSTEMREPORT_FIELD_RECIPIENTS_LABEL"
+            description="PLG_TASK_FGSYSTEMREPORT_FIELD_RECIPIENTS_DESC"
+            hint="admin@example.com, other@example.com"
+        />
+    </fieldset>
+</form>

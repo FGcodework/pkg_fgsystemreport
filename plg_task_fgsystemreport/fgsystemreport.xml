@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="task" method="upgrade">
+    <name>PLG_TASK_FGSYSTEMREPORT</name>
+    <author>Fero</author>
+    <creationDate>2026-09</creationDate>
+    <copyright>2026 Fero</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <version>1.2.1</version>
+    <description>PLG_TASK_FGSYSTEMREPORT_XML_DESCRIPTION</description>
+    <namespace path="src">Joomla\Plugin\Task\Fgsystemreport</namespace>
+    <files>
+        <folder>forms</folder>
+        <folder plugin="fgsystemreport">services</folder>
+        <folder>src</folder>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_task_fgsystemreport.ini</language>
+        <language tag="en-GB">en-GB/plg_task_fgsystemreport.sys.ini</language>
+        <language tag="de-DE">de-DE/plg_task_fgsystemreport.ini</language>
+        <language tag="de-DE">de-DE/plg_task_fgsystemreport.sys.ini</language>
+        <language tag="sk-SK">sk-SK/plg_task_fgsystemreport.ini</language>
+        <language tag="sk-SK">sk-SK/plg_task_fgsystemreport.sys.ini</language>
+    </languages>
+</extension>

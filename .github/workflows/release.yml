@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Tag must match the package version and updates.xml
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' pkg_fgsystemreport/pkg_fgsystemreport.xml | head -1)
+          UPD=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' updates.xml | head -1)
+          echo "tag=$TAG package=$PKG updates.xml=$UPD"
+          [ "$TAG" = "$PKG" ] && [ "$TAG" = "$UPD" ]
+          git diff --exit-code updates.xml || { echo "updates.xml is not up to date - run ./build.sh and commit it before tagging"; exit 1; }
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip \
+            --title "FG System Report ${GITHUB_REF_NAME#v}" \
+            --notes "See [CHANGELOG](https://github.com/FGcodework/pkg_fgsystemreport/blob/master/com_fgsystemreport/CHANGELOG.md). Install **pkg_fgsystemreport_${GITHUB_REF_NAME}.zip** (component + scheduled task plugin)."
