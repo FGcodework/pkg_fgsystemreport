@@ -8,6 +8,7 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
+use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
 
 $checks = $this->checks ?? [];
 
@@ -39,7 +40,7 @@ foreach ($checks as $c) {
                 <span class="badge bg-warning text-dark"><?php echo $counts['warning']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_WARNING'); ?></span>
             <?php endif; ?>
             <span class="badge bg-success"><?php echo $counts['ok']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_OK'); ?></span>
-            <a class="btn btn-sm btn-outline-primary ms-2" href="index.php?option=com_fgsystemreport&view=security&force=1">
+            <a class="btn btn-sm btn-outline-primary ms-2 fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SEC_RECHECKING')); ?>" href="index.php?option=com_fgsystemreport&view=security&force=1">
                 <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_SEC_RECHECK'); ?>
             </a>
             <a class="btn btn-sm btn-outline-secondary ms-2" href="index.php?option=com_fgsystemreport&view=history">
@@ -82,3 +83,5 @@ foreach ($checks as $c) {
         </table>
     </div>
 </div>
+
+<?php BusyHelper::render(); ?>

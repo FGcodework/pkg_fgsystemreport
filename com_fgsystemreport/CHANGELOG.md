@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.5.1]
+
+### Changed
+- Long-running actions (Check now on Extensions, Rescan on Disk Usage,
+  Re-check on Security) now show a modal "Working..." overlay with a
+  spinner and a per-action message until the page reloads. Implemented
+  once in the new `BusyHelper`; any link can opt in with class `fg-busy`.
+
 ## [1.5.0]
 
 ### Added

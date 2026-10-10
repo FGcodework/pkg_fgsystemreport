@@ -8,6 +8,7 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
+use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
 
 $extList = $this->extensionsList ?? [];
 $includeCoreList = (int) ($this->includeCoreList ?? 0);
@@ -126,7 +127,7 @@ $renderRow = function ($ext, $index) {
             <a class="btn btn-sm btn-outline-success" href="<?php echo $csvUrl; ?>">
                 <span class="icon-download me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_EXPORT_CSV'); ?>
             </a>
-            <a class="btn btn-sm btn-outline-primary" href="<?php echo $checkUrl; ?>" id="jc-check-updates">
+            <a class="btn btn-sm btn-outline-primary fg-busy" href="<?php echo $checkUrl; ?>" id="jc-check-updates" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_EXT_CHECKING_UPDATES')); ?>">
                 <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_CHECK_UPDATES'); ?>
             </a>
             <a class="btn btn-sm <?php echo $groupByType ? 'btn-secondary' : 'btn-outline-secondary'; ?>" href="<?php echo $groupToggleUrl; ?>">
@@ -232,17 +233,10 @@ $renderRow = function ($ext, $index) {
     <?php endif; ?>
 </div>
 
+<?php BusyHelper::render(); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var filter = document.getElementById('jc-ext-filter');
-    var checkBtn = document.getElementById('jc-check-updates');
-    if (checkBtn) {
-        checkBtn.addEventListener('click', function () {
-            this.classList.add('disabled');
-            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + <?php echo json_encode(Text::_('COM_FGSYSTEMREPORT_EXT_CHECKING')); ?>;
-        });
-    }
-
     if (!filter) { return; }
     filter.addEventListener('input', function () {
         var q = this.value.toLowerCase();

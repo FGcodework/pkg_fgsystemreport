@@ -7,6 +7,7 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
+use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 
 $dirs              = $this->dirs ?? [];
@@ -35,7 +36,7 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=
         <h3 class="m-0" style="font-size:16px;">
             <?php echo Text::sprintf('COM_FGSYSTEMREPORT_DISKUSAGE_TOP_FOLDERS', $topN); ?>
         </h3>
-        <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($rescanUrl); ?>">
+        <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_SCANNING')); ?>" href="<?php echo htmlspecialchars($rescanUrl); ?>">
             <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_RESCAN'); ?>
         </a>
     </div>
@@ -116,3 +117,5 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=
         <?php endif; ?>
     </div>
 </div>
+
+<?php BusyHelper::render(); ?>
