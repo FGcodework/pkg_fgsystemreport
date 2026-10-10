@@ -45,7 +45,7 @@ build.sh                  builds dist/*.zip and regenerates updates.xml
 ## Releasing
 
 1. Bump `<version>` in `com_fgsystemreport/fgsystemreport.xml` **and** `pkg_fgsystemreport/pkg_fgsystemreport.xml` (the package version follows the component), update the inner ZIP names in the package manifest, and add an entry to `com_fgsystemreport/CHANGELOG.md`. If the plugin changed, bump `plg_task_fgsystemreport/fgsystemreport.xml` and its ZIP name in the package manifest.
-2. Run `./build.sh` – builds `dist/` and regenerates `updates.xml`.
+2. Run `bash build.sh` – builds `dist/` and regenerates `updates.xml`.
 3. Commit, then `git tag vX.X.X && git push --tags`. The workflow checks that tag, package version and `updates.xml` agree and publishes the release.
 
 ## Credits
