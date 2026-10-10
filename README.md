@@ -1,4 +1,8 @@
-# FG System Report (pkg_fgsystemreport)
+<p align="center">
+  <img src="assets/logo.webp" alt="pkg_fgsystemreport logo" width="128" height="128">
+</p>
+
+# FG System Report
 
 [![Release](https://img.shields.io/github/v/release/FGcodework/pkg_fgsystemreport?label=release)](https://github.com/FGcodework/pkg_fgsystemreport/releases/latest)
 [![Joomla](https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-blue)](https://www.joomla.org)
