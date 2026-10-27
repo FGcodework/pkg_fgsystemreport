@@ -2,12 +2,16 @@
   <img src="assets/logo.webp" alt="pkg_fgsystemreport logo" width="128" height="128">
 </p>
 
-# FG System Report
+<h1 align="center">FG System Report</h1>
 
-[![Release](https://img.shields.io/github/v/release/FGcodework/pkg_fgsystemreport?label=release)](https://github.com/FGcodework/pkg_fgsystemreport/releases/latest)
-[![Joomla](https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-blue)](https://www.joomla.org)
-[![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4)](https://www.php.net)
-[![License](https://img.shields.io/badge/license-GPL--2.0--or--later-green)](LICENSE)
+<p align="center">
+  <a href="https://github.com/FGcodework/pkg_fgsystemreport/releases"><img alt="Release" src="https://img.shields.io/github/v/release/FGcodework/pkg_fgsystemreport?color=ff6b4a"></a>
+  <a href="https://www.joomla.org"><img alt="Joomla" src="https://img.shields.io/badge/Joomla-5.x%20%7C%206.x-1a3867?logo=joomla&logoColor=white"></a>
+  <a href="https://www.php.net"><img alt="PHP" src="https://img.shields.io/badge/PHP-8.1%2B-purple?logo=php&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--2.0+-green.svg"></a>
+  <a href="/../../releases"><img src="https://img.shields.io/github/downloads/FGcodework/pkg_fgsystemreport/total?cacheSeconds=3600&color=brown" alt="Downloads"></a>
+  <a href="https://ko-fi.com/FGcodework"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white"></a>
+</p>
 
 Audit and monitoring toolkit for Joomla, part of the **FG** extension series.
 
