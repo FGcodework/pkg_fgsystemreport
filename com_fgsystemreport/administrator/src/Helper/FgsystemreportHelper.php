@@ -1049,6 +1049,114 @@ class FgsystemreportHelper
 			$add('COM_FGSYSTEMREPORT_SEC_ORPHAN_ASSETS', 'ok', '0', '');
 		}
 
+		// 26) Mail DNS: SPF / DMARC / MX of the site's domain.
+		$mail = ExtraChecksHelper::mailDns();
+
+		if ($mail !== null) {
+			$yn    = static fn (bool $b): string => Text::_($b ? 'JYES' : 'JNO');
+			$value = Text::sprintf('COM_FGSYSTEMREPORT_SEC_MAIL_DNS_VALUE', $yn($mail['spf']), $yn($mail['dmarc']) . ($mail['policy'] !== '' ? ' (p=' . $mail['policy'] . ')' : ''), $yn($mail['mx']));
+			$miss  = array_keys(array_filter(['SPF' => !$mail['spf'], 'DMARC' => !$mail['dmarc']]));
+
+			if ($miss) {
+				$add('COM_FGSYSTEMREPORT_SEC_MAIL_DNS', 'warning', $value,
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_MAIL_DNS_MISSING', implode(' + ', $miss), $mail['host']));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_MAIL_DNS', 'ok', $value, '');
+			}
+		}
+
+		// 27) Scheduled tasks that stopped running.
+		$overdue = ExtraChecksHelper::overdueTasks();
+
+		if ($overdue !== null) {
+			if ($overdue) {
+				$add('COM_FGSYSTEMREPORT_SEC_SCHED', 'warning', (string) count($overdue),
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_SCHED_OVERDUE', count($overdue), implode(', ', $overdue)));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_SCHED', 'ok', Text::_('COM_FGSYSTEMREPORT_SEC_SCHED_ON_TIME'), '');
+			}
+		}
+
+		// 28) OPcache
+		$opc = ExtraChecksHelper::opcache();
+
+		if ($opc === 'off') {
+			$add('COM_FGSYSTEMREPORT_SEC_OPCACHE', 'warning', Text::_('JNO'), Text::_('COM_FGSYSTEMREPORT_SEC_OPCACHE_OFF'));
+		} elseif ($opc === 'full') {
+			$add('COM_FGSYSTEMREPORT_SEC_OPCACHE', 'warning', Text::_('JYES'), Text::_('COM_FGSYSTEMREPORT_SEC_OPCACHE_FULL'));
+		} elseif ($opc === 'ok') {
+			$add('COM_FGSYSTEMREPORT_SEC_OPCACHE', 'ok', Text::_('JYES'), '');
+		}
+
+		// 29) HSTS (informational: never lowers the score)
+		$hsts = ExtraChecksHelper::hsts();
+
+		if ($hsts !== null) {
+			if ($hsts === '') {
+				$add('COM_FGSYSTEMREPORT_SEC_HSTS', 'info', Text::_('JNO'), Text::_('COM_FGSYSTEMREPORT_SEC_HSTS_MISSING'));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_HSTS', 'ok', $hsts, '');
+			}
+		}
+
+		// 30) PHP files under /images
+		$php = ExtraChecksHelper::phpInImages();
+
+		if ($php !== null) {
+			if ($php['count'] > 0) {
+				$add('COM_FGSYSTEMREPORT_SEC_PHP_IN_IMAGES', 'danger', (string) $php['count'],
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_PHP_IN_IMAGES_FOUND', implode(', ', $php['files'])));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_PHP_IN_IMAGES', 'ok', '0',
+					$php['partial'] ? Text::_('COM_FGSYSTEMREPORT_SEC_PHP_IN_IMAGES_PARTIAL') : '');
+			}
+		}
+
+		// 31) Leftover files in the web root
+		$left = ExtraChecksHelper::rootLeftovers();
+
+		if ($left !== null) {
+			$notes = [];
+
+			if ($left['install']) {
+				$notes[] = Text::_('COM_FGSYSTEMREPORT_SEC_LEFTOVERS_INSTALL');
+			}
+
+			if ($left['config']) {
+				$notes[] = Text::sprintf('COM_FGSYSTEMREPORT_SEC_LEFTOVERS_CONFIG', implode(', ', $left['config']));
+			}
+
+			if ($left['backups']) {
+				$notes[] = Text::sprintf('COM_FGSYSTEMREPORT_SEC_LEFTOVERS_BACKUPS', implode(', ', $left['backups']));
+			}
+
+			if ($left['tools']) {
+				$notes[] = Text::sprintf('COM_FGSYSTEMREPORT_SEC_LEFTOVERS_TOOLS', implode(', ', $left['tools']));
+			}
+
+			$cnt = (int) $left['install'] + count($left['config']) + count($left['backups']) + count($left['tools']);
+
+			if ($left['install'] || $left['config']) {
+				$add('COM_FGSYSTEMREPORT_SEC_LEFTOVERS', 'danger', (string) $cnt, implode(' ', $notes));
+			} elseif ($notes) {
+				$add('COM_FGSYSTEMREPORT_SEC_LEFTOVERS', 'warning', (string) $cnt, implode(' ', $notes));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_LEFTOVERS', 'ok', '0', '');
+			}
+		}
+
+		// 32) PHP fatal errors in the last 24 hours (from the error logs)
+		$fatals = ErrorLogHelper::recentFatals();
+
+		if ($fatals !== null) {
+			if ($fatals['count'] > 0) {
+				$add('COM_FGSYSTEMREPORT_SEC_FATALS', 'warning', (string) $fatals['count'],
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_FATALS_FOUND', $fatals['count'], $fatals['top'] !== '' ? $fatals['top'] : '?'));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_FATALS', 'ok', '0', '');
+			}
+		}
+
 		return $checks;
 	}
 

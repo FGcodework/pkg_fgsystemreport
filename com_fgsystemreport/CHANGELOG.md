@@ -28,6 +28,17 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.10.0]
+
+### Added
+- **Errors page** (new submenu item, `core.admin` only): reads the tail (last 1 MB) of the Joomla log folder error logs and PHP `error_log` files, groups identical errors by cause and attributes each group to the extension, template or Joomla core folder whose file raised it ("who causes the errors"). Period 24 h / 7 d / 30 d, severity filter, and a "spike" flag when an error is 3x more frequent in the last day than the daily average of the six days before. Read-only, no per-request cost.
+- **Change timeline** (new plugin `plg_system_fgsystemreport` 1.0.0): records extension installs, updates and removals, enable/disable, and changes of key Global Configuration settings (debug, error reporting, caching, offline, mailer, force SSL, SEF, gzip, session handler, ...). Shown on the Security History page as dashed markers in the score chart, a "Changes" count per run (tooltip lists them) and a "Change timeline" table. Does nothing on ordinary page requests.
+- Security Check, 7 new checks (now 32): **Mail DNS** (SPF / DMARC / MX of the site domain), **Scheduled tasks** overdue by more than a day (cron not running), **OPcache** off or full, **HSTS** (informational), **PHP files in /images**, **Leftover files in the web root** (installation folder, copies of configuration.php, backups/dumps, adminer/phpinfo-style scripts) and **PHP fatal errors in the last 24 h**.
+- New table `#__fgsystemreport_event` (created on first use; removed on uninstall).
+
+### Changed
+- The package now contains five extensions; the installer enables the new system plugin on a fresh install and on the first update that brings it.
+
 ## [1.9.1]
 
 ### Fixed

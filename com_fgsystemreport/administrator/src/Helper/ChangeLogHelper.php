@@ -1,0 +1,166 @@
+<?php
+/**
+ * @package    Com_Fgsystemreport
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace Fg\Component\Fgsystemreport\Administrator\Helper;
+
+defined('_JEXEC') or die;
+
+use Joomla\CMS\Factory;
+
+/**
+ * Timeline of site changes (extension installs/updates/removals, extension
+ * enable/disable, global configuration changes), recorded by the system
+ * plugin plg_system_fgsystemreport and shown next to the Security History
+ * so a drop in the score can be tied to what changed.
+ *
+ * @since  1.10.0
+ */
+final class ChangeLogHelper
+{
+	private const TABLE   = '#__fgsystemreport_event';
+	private const MAX_ROWS = 1000;
+
+	/** @var bool|null */
+	private static $tableReady = null;
+
+	public static function ensureTable(): bool
+	{
+		if (self::$tableReady !== null) {
+			return self::$tableReady;
+		}
+
+		try {
+			$db = Factory::getContainer()->get('DatabaseDriver');
+
+			if (stripos($db->getServerType(), 'postgre') !== false) {
+				$sql = 'CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::TABLE) . ' ('
+					. '"id" SERIAL PRIMARY KEY, "created_at" TIMESTAMP NOT NULL, "type" VARCHAR(16) NOT NULL, '
+					. '"subject" VARCHAR(190) NOT NULL DEFAULT \'\', "detail" VARCHAR(255) NOT NULL DEFAULT \'\', '
+					. '"user_name" VARCHAR(150) NOT NULL DEFAULT \'\')';
+			} else {
+				$sql = 'CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::TABLE) . ' ('
+					. '`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `created_at` DATETIME NOT NULL, `type` VARCHAR(16) NOT NULL, '
+					. '`subject` VARCHAR(190) NOT NULL DEFAULT \'\', `detail` VARCHAR(255) NOT NULL DEFAULT \'\', '
+					. '`user_name` VARCHAR(150) NOT NULL DEFAULT \'\', '
+					. 'PRIMARY KEY (`id`), KEY `idx_created_at` (`created_at`)) DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_unicode_ci';
+			}
+
+			$db->setQuery($sql)->execute();
+			self::$tableReady = true;
+		} catch (\Throwable $e) {
+			self::$tableReady = false;
+		}
+
+		return self::$tableReady;
+	}
+
+	/**
+	 * Store one event. Identical events within a minute are stored once.
+	 *
+	 * @param   string  $type  install|update|uninstall|enable|disable|config
+	 */
+	public static function record(string $type, string $subject, string $detail = ''): bool
+	{
+		if (!in_array($type, ['install', 'update', 'uninstall', 'enable', 'disable', 'config'], true) || !self::ensureTable()) {
+			return false;
+		}
+
+		try {
+			$db   = Factory::getContainer()->get('DatabaseDriver');
+			$user = '';
+
+			try {
+				$identity = Factory::getApplication()->getIdentity();
+				$user     = $identity && $identity->id ? (string) $identity->username : '';
+			} catch (\Throwable $e) {
+				// no identity (CLI / scheduler)
+			}
+
+			$subject = mb_substr($subject, 0, 190);
+			$detail  = mb_substr($detail, 0, 255);
+
+			$recent = (int) $db->setQuery(
+				$db->getQuery(true)->select('COUNT(*)')->from($db->quoteName(self::TABLE))
+					->where($db->quoteName('type') . ' = ' . $db->quote($type))
+					->where($db->quoteName('subject') . ' = ' . $db->quote($subject))
+					->where($db->quoteName('detail') . ' = ' . $db->quote($detail))
+					->where($db->quoteName('created_at') . ' > ' . $db->quote(Factory::getDate('-1 minute')->toSql()))
+			)->loadResult();
+
+			if ($recent > 0) {
+				return false;
+			}
+
+			$db->insertObject(self::TABLE, (object) [
+				'created_at' => Factory::getDate()->toSql(),
+				'type'       => $type,
+				'subject'    => $subject,
+				'detail'     => $detail,
+				'user_name'  => mb_substr($user, 0, 150),
+			]);
+
+			self::prune();
+
+			return true;
+		} catch (\Throwable $e) {
+			return false;
+		}
+	}
+
+	/**
+	 * Events of the last $days days, oldest first.
+	 *
+	 * @return  array  list of objects: created_at (UTC), type, subject, detail, user_name
+	 */
+	public static function getEvents(int $days, int $limit = 300): array
+	{
+		if (!self::ensureTable()) {
+			return [];
+		}
+
+		try {
+			$db = Factory::getContainer()->get('DatabaseDriver');
+			$q  = $db->getQuery(true)
+				->select(['created_at', 'type', 'subject', 'detail', 'user_name'])
+				->from($db->quoteName(self::TABLE))
+				->where($db->quoteName('created_at') . ' >= ' . $db->quote(Factory::getDate('-' . max(1, $days) . ' days')->toSql()))
+				->order($db->quoteName('id') . ' DESC');
+
+			return array_reverse((array) $db->setQuery($q, 0, $limit)->loadObjectList());
+		} catch (\Throwable $e) {
+			return [];
+		}
+	}
+
+	/** Delete rows past the retention period and keep at most MAX_ROWS. */
+	public static function prune(): void
+	{
+		try {
+			$db   = Factory::getContainer()->get('DatabaseDriver');
+			$days = HistoryHelper::getRetentionDays();
+
+			$db->setQuery(
+				$db->getQuery(true)->delete($db->quoteName(self::TABLE))
+					->where($db->quoteName('created_at') . ' < ' . $db->quote(Factory::getDate('-' . $days . ' days')->toSql()))
+			)->execute();
+
+			$cut = $db->setQuery(
+				$db->getQuery(true)->select($db->quoteName('id'))->from($db->quoteName(self::TABLE))
+					->order($db->quoteName('id') . ' DESC'),
+				self::MAX_ROWS,
+				1
+			)->loadResult();
+
+			if ($cut) {
+				$db->setQuery(
+					$db->getQuery(true)->delete($db->quoteName(self::TABLE))->where($db->quoteName('id') . ' <= ' . (int) $cut)
+				)->execute();
+			}
+		} catch (\Throwable $e) {
+			// best effort
+		}
+	}
+}

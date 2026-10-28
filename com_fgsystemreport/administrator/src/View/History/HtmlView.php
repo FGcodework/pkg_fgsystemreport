@@ -14,6 +14,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\ChangeLogHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\HistoryHelper;
 
 /**
@@ -42,6 +43,9 @@ class HtmlView extends BaseHtmlView
 	/** @var int */
 	public $retention = 365;
 
+	/** @var array Site change events in the range (ChangeLogHelper) */
+	public $events = [];
+
 	public function display($tpl = null): void
 	{
 		// Same sensitivity as the Security Check page itself.
@@ -54,6 +58,7 @@ class HtmlView extends BaseHtmlView
 		$this->days      = in_array($days, [30, 90, 365], true) ? $days : 90;
 		$this->retention = HistoryHelper::getRetentionDays();
 		$this->runs      = HistoryHelper::getRuns($this->days);
+		$this->events    = ChangeLogHelper::getEvents($this->days);
 
 		$runId = $input->getInt('run', 0);
 

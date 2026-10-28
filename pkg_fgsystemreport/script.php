@@ -11,12 +11,12 @@ use Joomla\CMS\Factory;
 /**
  * Package installer script - Joomla installs plugins from a package disabled,
  * so this enables them: all of them on a fresh install, and the console /
- * quick icon plugins on the update that first brings them. A plugin an admin
+ * quick icon / system plugins on the update that first brings them. A plugin an admin
  * disabled on purpose is never re-enabled by a later update.
  */
 class Pkg_FgsystemreportInstallerScript
 {
-    private const FOLDERS = ['task', 'console', 'quickicon'];
+    private const FOLDERS = ['task', 'console', 'quickicon', 'system'];
 
     /** @var array folder => true when the plugin was not installed before this run */
     private $missing = [];

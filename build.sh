@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds dist/pkg_fgsystemreport_vX.X.X.zip (the all-in-one package: component +
-# task, console and quick icon plugins) and the standalone com_/plg_ ZIPs, and regenerates updates.xml
+# task, console, quick icon and system plugins) and the standalone com_/plg_ ZIPs, and regenerates updates.xml
 # from the package manifest version.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -11,6 +11,7 @@ COM_V=$(ver com_fgsystemreport/fgsystemreport.xml)
 PLG_V=$(ver plg_task_fgsystemreport/fgsystemreport.xml)
 CON_V=$(ver plg_console_fgsystemreport/fgsystemreport.xml)
 QIC_V=$(ver plg_quickicon_fgsystemreport/fgsystemreport.xml)
+SYS_V=$(ver plg_system_fgsystemreport/fgsystemreport.xml)
 PKG_V=$(ver pkg_fgsystemreport/pkg_fgsystemreport.xml)
 
 [ "$COM_V" = "$PKG_V" ] || { echo "Component ($COM_V) and package ($PKG_V) versions differ - package version follows the component."; exit 1; }
@@ -18,6 +19,7 @@ grep -q "com_fgsystemreport_v${COM_V}.zip" pkg_fgsystemreport/pkg_fgsystemreport
 grep -q "plg_task_fgsystemreport_v${PLG_V}.zip" pkg_fgsystemreport/pkg_fgsystemreport.xml || { echo "pkg manifest does not reference plg_task_fgsystemreport_v${PLG_V}.zip"; exit 1; }
 grep -q "plg_console_fgsystemreport_v${CON_V}.zip" pkg_fgsystemreport/pkg_fgsystemreport.xml || { echo "pkg manifest does not reference plg_console_fgsystemreport_v${CON_V}.zip"; exit 1; }
 grep -q "plg_quickicon_fgsystemreport_v${QIC_V}.zip" pkg_fgsystemreport/pkg_fgsystemreport.xml || { echo "pkg manifest does not reference plg_quickicon_fgsystemreport_v${QIC_V}.zip"; exit 1; }
+grep -q "plg_system_fgsystemreport_v${SYS_V}.zip" pkg_fgsystemreport/pkg_fgsystemreport.xml || { echo "pkg manifest does not reference plg_system_fgsystemreport_v${SYS_V}.zip"; exit 1; }
 
 rm -rf dist build_tmp
 mkdir -p dist build_tmp/pkg/packages
@@ -26,8 +28,9 @@ mkdir -p dist build_tmp/pkg/packages
 (cd plg_task_fgsystemreport && zip -qr -X "../dist/plg_task_fgsystemreport_v${PLG_V}.zip" .)
 (cd plg_console_fgsystemreport && zip -qr -X "../dist/plg_console_fgsystemreport_v${CON_V}.zip" .)
 (cd plg_quickicon_fgsystemreport && zip -qr -X "../dist/plg_quickicon_fgsystemreport_v${QIC_V}.zip" .)
+(cd plg_system_fgsystemreport && zip -qr -X "../dist/plg_system_fgsystemreport_v${SYS_V}.zip" .)
 
-cp "dist/com_fgsystemreport_v${COM_V}.zip" "dist/plg_task_fgsystemreport_v${PLG_V}.zip" "dist/plg_console_fgsystemreport_v${CON_V}.zip" "dist/plg_quickicon_fgsystemreport_v${QIC_V}.zip" build_tmp/pkg/packages/
+cp "dist/com_fgsystemreport_v${COM_V}.zip" "dist/plg_task_fgsystemreport_v${PLG_V}.zip" "dist/plg_console_fgsystemreport_v${CON_V}.zip" "dist/plg_quickicon_fgsystemreport_v${QIC_V}.zip" "dist/plg_system_fgsystemreport_v${SYS_V}.zip" build_tmp/pkg/packages/
 cp -r pkg_fgsystemreport/. build_tmp/pkg/
 (cd build_tmp/pkg && zip -qr -X "../../dist/pkg_fgsystemreport_v${PKG_V}.zip" .)
 rm -rf build_tmp
