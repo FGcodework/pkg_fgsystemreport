@@ -25,6 +25,23 @@ final class DbDiagnosticsHelper
 	private const OVERHEAD_WARN = 104857600;     // 100 MB reclaimable space
 	private const LIST_LIMIT   = 15;
 
+	/** Joomla core tables (without prefix). Everything else belongs to extensions. */
+	private const CORE_ALL = [
+		'action_log_config', 'action_logs', 'action_logs_extensions', 'action_logs_users', 'assets',
+		'banner_clients', 'banner_tracks', 'banners', 'categories', 'contact_details', 'content',
+		'content_frontpage', 'content_rating', 'content_types', 'contentitem_tag_map', 'extensions',
+		'fields', 'fields_categories', 'fields_groups', 'fields_values', 'finder_filters', 'finder_links',
+		'finder_links_terms', 'finder_logging', 'finder_taxonomy', 'finder_taxonomy_map', 'finder_terms',
+		'finder_terms_common', 'finder_tokens', 'finder_tokens_aggregate', 'finder_types', 'guidedtour_steps',
+		'guidedtours', 'history', 'languages', 'mail_templates', 'menu', 'menu_types', 'messages',
+		'messages_cfg', 'modules', 'modules_menu', 'newsfeeds', 'overrider', 'postinstall_messages',
+		'privacy_consents', 'privacy_requests', 'redirect_links', 'scheduler_logs', 'scheduler_tasks',
+		'schemas', 'session', 'tags', 'template_overrides', 'template_styles', 'ucm_base', 'ucm_content',
+		'update_sites', 'update_sites_extensions', 'updates', 'user_keys', 'user_mfa', 'user_notes',
+		'user_profiles', 'user_usergroup_map', 'usergroups', 'users', 'viewlevels', 'webauthn_credentials',
+		'workflow_associations', 'workflow_stages', 'workflow_transitions', 'workflows',
+	];
+
 	/** Tables every working Joomla 4/5/6 site has (without prefix). */
 	private const CORE_TABLES = [
 		'assets', 'categories', 'content', 'extensions', 'languages', 'menu', 'menu_types',
@@ -74,8 +91,8 @@ final class DbDiagnosticsHelper
 			array_push(
 				$steps,
 				self::checkCoreTables($db, $tables),
-				self::checkEngines($tables),
-				self::checkCollations($tables),
+				self::checkEngines($db, $tables),
+				self::checkCollations($db, $tables),
 				self::checkLargest($tables)
 			);
 		}
@@ -185,6 +202,11 @@ final class DbDiagnosticsHelper
 		return strpos($name, $p) === 0 ? substr($name, strlen($p)) : $name;
 	}
 
+	private static function isCore($db, string $tableName): bool
+	{
+		return in_array(strtolower(self::stripPrefix($db, $tableName)), self::CORE_ALL, true);
+	}
+
 	private static function checkCoreTables($db, array $tables): array
 	{
 		$have    = [];
@@ -210,17 +232,22 @@ final class DbDiagnosticsHelper
 		return self::step('core', 'ok', $value, [['COM_FGSYSTEMREPORT_DB_M_TABLES', (string) count($tables)]]);
 	}
 
-	private static function checkEngines(array $tables): array
+	private static function checkEngines($db, array $tables): array
 	{
-		$count = [];
-		$myisam = [];
+		$count   = [];
+		$core    = [];
+		$ext     = [];
 
 		foreach ($tables as $t) {
 			$engine = (string) ($t['engine'] ?? '');
 			$count[$engine] = ($count[$engine] ?? 0) + 1;
 
 			if (strcasecmp($engine, 'MyISAM') === 0) {
-				$myisam[] = (string) $t['name'];
+				if (self::isCore($db, (string) $t['name'])) {
+					$core[] = (string) $t['name'];
+				} else {
+					$ext[] = (string) $t['name'];
+				}
 			}
 		}
 
@@ -231,55 +258,76 @@ final class DbDiagnosticsHelper
 			$metrics[] = [$e !== '' ? $e : '?', (string) $n];
 		}
 
-		if ($myisam) {
-			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_MYISAM_TABLES', implode(', ', array_slice($myisam, 0, self::LIST_LIMIT)) . (count($myisam) > self::LIST_LIMIT ? ', ...' : '')];
+		$fmt = static fn (array $l): string => implode(', ', array_slice($l, 0, self::LIST_LIMIT)) . (count($l) > self::LIST_LIMIT ? ', ...' : '');
 
-			return self::step('engines', 'warning', (string) count($myisam), $metrics, 'COM_FGSYSTEMREPORT_DB_MYISAM_FOUND');
+		if ($core) {
+			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_MYISAM_CORE', $fmt($core)];
+		}
+
+		if ($ext) {
+			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_MYISAM_EXT', $fmt($ext)];
+		}
+
+		if ($core) {
+			return self::step('engines', 'warning', (string) count($core), $metrics, 'COM_FGSYSTEMREPORT_DB_MYISAM_FOUND');
+		}
+
+		if ($ext) {
+			return self::step('engines', 'info', (string) count($ext), $metrics, 'COM_FGSYSTEMREPORT_DB_MYISAM_EXT_ONLY');
 		}
 
 		return self::step('engines', 'ok', (string) key($count), $metrics);
 	}
 
-	private static function checkCollations(array $tables): array
+	private static function checkCollations($db, array $tables): array
 	{
-		$count = [];
+		$count    = [];
+		$coreBad  = [];   // core tables not on utf8mb4
+		$extOdd   = [];   // extension tables not on the site's dominant core collation
+		$coreCol  = [];
 
 		foreach ($tables as $t) {
 			$c = (string) ($t['collation'] ?? '');
 			$count[$c] = ($count[$c] ?? 0) + 1;
+
+			if (self::isCore($db, (string) $t['name'])) {
+				$coreCol[$c] = ($coreCol[$c] ?? 0) + 1;
+			}
 		}
 
 		arsort($count);
-		$dominant = (string) key($count);
+		arsort($coreCol);
+		$dominant = $coreCol ? (string) key($coreCol) : (string) key($count);
 		$metrics  = [];
 
 		foreach ($count as $c => $n) {
 			$metrics[] = [$c !== '' ? $c : '?', (string) $n];
 		}
 
-		$odd = [];
-		$old = false;
-
 		foreach ($tables as $t) {
 			$c = (string) ($t['collation'] ?? '');
 
-			if ($c !== $dominant) {
-				$odd[] = $t['name'] . ' (' . $c . ')';
-			}
-
-			if ($c !== '' && stripos($c, 'utf8mb4') !== 0) {
-				$old = true;
+			if (self::isCore($db, (string) $t['name'])) {
+				if ($c !== '' && stripos($c, 'utf8mb4') !== 0) {
+					$coreBad[] = $t['name'] . ' (' . $c . ')';
+				}
+			} elseif ($c !== $dominant) {
+				$extOdd[] = $t['name'] . ' (' . $c . ')';
 			}
 		}
 
-		if ($odd) {
-			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_DIFFERENT', implode(', ', array_slice($odd, 0, self::LIST_LIMIT)) . (count($odd) > self::LIST_LIMIT ? ', ...' : '')];
+		$fmt = static fn (array $l): string => implode(', ', array_slice($l, 0, self::LIST_LIMIT)) . (count($l) > self::LIST_LIMIT ? ', ...' : '');
 
-			return self::step('collations', 'warning', (string) count($count), $metrics, 'COM_FGSYSTEMREPORT_DB_COLLATION_MIXED');
+		if ($coreBad) {
+			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_CORE_DIFFERENT', $fmt($coreBad)];
+
+			return self::step('collations', 'warning', (string) count($coreBad), $metrics, 'COM_FGSYSTEMREPORT_DB_COLLATION_NOT_UTF8MB4');
 		}
 
-		if ($old) {
-			return self::step('collations', 'warning', $dominant, $metrics, 'COM_FGSYSTEMREPORT_DB_COLLATION_NOT_UTF8MB4');
+		if ($extOdd) {
+			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_EXT_DIFFERENT', $fmt($extOdd)];
+
+			return self::step('collations', 'info', (string) count($extOdd), $metrics, 'COM_FGSYSTEMREPORT_DB_COLLATION_MIXED');
 		}
 
 		return self::step('collations', 'ok', $dominant, $metrics);

@@ -28,6 +28,15 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.7.1]
+
+### Changed
+- Database page: the MyISAM and collation checks now tell Joomla core tables
+  apart from extension tables. A warning is raised only when a core table is
+  on MyISAM or not on utf8mb4; the same findings in extension tables (which
+  create these tables themselves) are shown as information only, with
+  explanatory text. Fixes needless warnings on perfectly healthy sites.
+
 ## [1.7.0]
 
 ### Added
