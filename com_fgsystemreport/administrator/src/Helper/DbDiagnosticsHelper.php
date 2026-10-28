@@ -1,0 +1,330 @@
+<?php
+/**
+ * @package    Com_Fgsystemreport
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ */
+
+namespace Fg\Component\Fgsystemreport\Administrator\Helper;
+
+defined('_JEXEC') or die;
+
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+
+/**
+ * Read-only database diagnostics (MySQL / MariaDB): server settings,
+ * Joomla core tables, storage engines, collations, largest tables.
+ * Nothing is ever modified.
+ *
+ * @since  1.7.0
+ */
+final class DbDiagnosticsHelper
+{
+	private const MIN_PACKET   = 16777216;       // 16 MB
+	private const OVERHEAD_WARN = 104857600;     // 100 MB reclaimable space
+	private const LIST_LIMIT   = 15;
+
+	/** Tables every working Joomla 4/5/6 site has (without prefix). */
+	private const CORE_TABLES = [
+		'assets', 'categories', 'content', 'extensions', 'languages', 'menu', 'menu_types',
+		'modules', 'modules_menu', 'schemas', 'session', 'template_styles', 'update_sites',
+		'updates', 'users', 'usergroups', 'user_usergroup_map', 'viewlevels', 'action_logs',
+	];
+
+	/**
+	 * @return  array  ['time' => int, 'steps' => list<array>]
+	 */
+	public static function run(bool $forceRefresh = false): array
+	{
+		try {
+			$cache = Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+				->createCacheController('callback', ['defaultgroup' => 'com_fgsystemreport_db', 'lifetime' => 5]);
+
+			if ($forceRefresh) {
+				$cache->clean();
+			}
+
+			return $cache->get([self::class, 'build'], [], 'db-diagnostics');
+		} catch (\Throwable $e) {
+			return self::build();
+		}
+	}
+
+	public static function build(): array
+	{
+		$db = Factory::getContainer()->get('DatabaseDriver');
+
+		if (stripos($db->getServerType(), 'mysql') === false) {
+			return [
+				'time'  => time(),
+				'steps' => [self::step('server', 'info', $db->getServerType() . ' ' . $db->getVersion(), [], 'COM_FGSYSTEMREPORT_DB_UNSUPPORTED')],
+			];
+		}
+
+		$steps   = [];
+		$steps[] = self::checkServer($db);
+		$steps[] = self::checkVariables($db);
+
+		$tables = self::loadTables($db);
+
+		if ($tables === null) {
+			$steps[] = self::step('tables', 'info', Text::_('JNONE'), [], 'COM_FGSYSTEMREPORT_DB_TABLES_UNAVAILABLE');
+		} else {
+			array_push(
+				$steps,
+				self::checkCoreTables($db, $tables),
+				self::checkEngines($tables),
+				self::checkCollations($tables),
+				self::checkLargest($tables)
+			);
+		}
+
+		return ['time' => time(), 'steps' => $steps];
+	}
+
+	/** Build one step record. */
+	private static function step(string $id, string $status, string $value, array $metrics = [], string $note = '', array $table = []): array
+	{
+		return ['id' => $id, 'status' => $status, 'value' => $value, 'metrics' => $metrics, 'note' => $note, 'table' => $table];
+	}
+
+	private static function scalar($db, string $sql): ?string
+	{
+		try {
+			$v = $db->setQuery($sql)->loadResult();
+
+			return $v === null ? null : (string) $v;
+		} catch (\Throwable $e) {
+			return null;
+		}
+	}
+
+	private static function checkServer($db): array
+	{
+		$charset   = self::scalar($db, 'SELECT @@character_set_database') ?? '?';
+		$collation = self::scalar($db, 'SELECT @@collation_database') ?? '?';
+		$status    = stripos($charset, 'utf8mb4') === 0 ? 'ok' : 'warning';
+
+		return self::step(
+			'server',
+			$status,
+			$db->getServerType() . ' ' . $db->getVersion(),
+			[
+				['COM_FGSYSTEMREPORT_DB_M_DEFAULT_CHARSET', $charset . ' / ' . $collation],
+			],
+			$status === 'ok' ? '' : 'COM_FGSYSTEMREPORT_DB_CHARSET_NOT_UTF8MB4'
+		);
+	}
+
+	private static function checkVariables($db): array
+	{
+		$names   = ['max_allowed_packet', 'max_connections', 'wait_timeout', 'innodb_buffer_pool_size', 'innodb_file_per_table'];
+		$metrics = [];
+		$status  = 'ok';
+		$note    = '';
+
+		foreach ($names as $name) {
+			try {
+				$row = $db->setQuery('SHOW VARIABLES LIKE ' . $db->quote($name))->loadRow();
+			} catch (\Throwable $e) {
+				$row = null;
+			}
+
+			if (!$row) {
+				continue;
+			}
+
+			$val = (string) $row[1];
+
+			if (in_array($name, ['max_allowed_packet', 'innodb_buffer_pool_size'], true) && ctype_digit($val)) {
+				if ($name === 'max_allowed_packet' && (int) $val < self::MIN_PACKET) {
+					$status = 'warning';
+					$note   = 'COM_FGSYSTEMREPORT_DB_PACKET_LOW';
+				}
+
+				$val = FgsystemreportHelper::formatFileSize((int) $val);
+			}
+
+			$metrics[] = [$name, $val];
+		}
+
+		if (!$metrics) {
+			return self::step('variables', 'info', Text::_('JNONE'), [], 'COM_FGSYSTEMREPORT_DB_VARIABLES_UNAVAILABLE');
+		}
+
+		return self::step('variables', $status, count($metrics) . '', $metrics, $note);
+	}
+
+	/** @return  array|null  rows from information_schema, null when unavailable */
+	private static function loadTables($db): ?array
+	{
+		try {
+			$prefix = $db->getPrefix();
+			$like   = str_replace(['\\', '_', '%'], ['\\\\', '\\_', '\\%'], $prefix) . '%';
+
+			$rows = $db->setQuery(
+				'SELECT TABLE_NAME AS name, ENGINE AS engine, TABLE_COLLATION AS collation,'
+				. ' COALESCE(DATA_LENGTH,0) AS data_len, COALESCE(INDEX_LENGTH,0) AS index_len,'
+				. ' COALESCE(DATA_FREE,0) AS free_len, COALESCE(TABLE_ROWS,0) AS rows_n'
+				. ' FROM information_schema.TABLES'
+				. ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = ' . $db->quote('BASE TABLE')
+				. ' AND TABLE_NAME LIKE ' . $db->quote($like)
+			)->loadAssocList();
+
+			return $rows ?: null;
+		} catch (\Throwable $e) {
+			return null;
+		}
+	}
+
+	private static function stripPrefix($db, string $name): string
+	{
+		$p = $db->getPrefix();
+
+		return strpos($name, $p) === 0 ? substr($name, strlen($p)) : $name;
+	}
+
+	private static function checkCoreTables($db, array $tables): array
+	{
+		$have    = [];
+
+		foreach ($tables as $t) {
+			$have[strtolower(self::stripPrefix($db, (string) $t['name']))] = true;
+		}
+
+		$missing = [];
+
+		foreach (self::CORE_TABLES as $core) {
+			if (!isset($have[$core])) {
+				$missing[] = $core;
+			}
+		}
+
+		$value = (count(self::CORE_TABLES) - count($missing)) . '/' . count(self::CORE_TABLES);
+
+		if ($missing) {
+			return self::step('core', 'danger', $value, [['COM_FGSYSTEMREPORT_DB_M_MISSING', implode(', ', $missing)]], 'COM_FGSYSTEMREPORT_DB_CORE_MISSING');
+		}
+
+		return self::step('core', 'ok', $value, [['COM_FGSYSTEMREPORT_DB_M_TABLES', (string) count($tables)]]);
+	}
+
+	private static function checkEngines(array $tables): array
+	{
+		$count = [];
+		$myisam = [];
+
+		foreach ($tables as $t) {
+			$engine = (string) ($t['engine'] ?? '');
+			$count[$engine] = ($count[$engine] ?? 0) + 1;
+
+			if (strcasecmp($engine, 'MyISAM') === 0) {
+				$myisam[] = (string) $t['name'];
+			}
+		}
+
+		arsort($count);
+		$metrics = [];
+
+		foreach ($count as $e => $n) {
+			$metrics[] = [$e !== '' ? $e : '?', (string) $n];
+		}
+
+		if ($myisam) {
+			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_MYISAM_TABLES', implode(', ', array_slice($myisam, 0, self::LIST_LIMIT)) . (count($myisam) > self::LIST_LIMIT ? ', ...' : '')];
+
+			return self::step('engines', 'warning', (string) count($myisam), $metrics, 'COM_FGSYSTEMREPORT_DB_MYISAM_FOUND');
+		}
+
+		return self::step('engines', 'ok', (string) key($count), $metrics);
+	}
+
+	private static function checkCollations(array $tables): array
+	{
+		$count = [];
+
+		foreach ($tables as $t) {
+			$c = (string) ($t['collation'] ?? '');
+			$count[$c] = ($count[$c] ?? 0) + 1;
+		}
+
+		arsort($count);
+		$dominant = (string) key($count);
+		$metrics  = [];
+
+		foreach ($count as $c => $n) {
+			$metrics[] = [$c !== '' ? $c : '?', (string) $n];
+		}
+
+		$odd = [];
+		$old = false;
+
+		foreach ($tables as $t) {
+			$c = (string) ($t['collation'] ?? '');
+
+			if ($c !== $dominant) {
+				$odd[] = $t['name'] . ' (' . $c . ')';
+			}
+
+			if ($c !== '' && stripos($c, 'utf8mb4') !== 0) {
+				$old = true;
+			}
+		}
+
+		if ($odd) {
+			$metrics[] = ['COM_FGSYSTEMREPORT_DB_M_DIFFERENT', implode(', ', array_slice($odd, 0, self::LIST_LIMIT)) . (count($odd) > self::LIST_LIMIT ? ', ...' : '')];
+
+			return self::step('collations', 'warning', (string) count($count), $metrics, 'COM_FGSYSTEMREPORT_DB_COLLATION_MIXED');
+		}
+
+		if ($old) {
+			return self::step('collations', 'warning', $dominant, $metrics, 'COM_FGSYSTEMREPORT_DB_COLLATION_NOT_UTF8MB4');
+		}
+
+		return self::step('collations', 'ok', $dominant, $metrics);
+	}
+
+	private static function checkLargest(array $tables): array
+	{
+		$total    = 0;
+		$overhead = 0;
+
+		foreach ($tables as &$t) {
+			$t['size'] = (int) $t['data_len'] + (int) $t['index_len'];
+			$total    += $t['size'];
+			$overhead += (int) $t['free_len'];
+		}
+
+		unset($t);
+
+		usort($tables, static fn ($a, $b) => $b['size'] <=> $a['size']);
+		$top  = array_slice($tables, 0, 10);
+		$rows = [];
+
+		foreach ($top as $t) {
+			$rows[] = [
+				(string) $t['name'],
+				number_format((int) $t['rows_n'], 0, ',', ' '),
+				FgsystemreportHelper::formatFileSize($t['size']),
+				FgsystemreportHelper::formatFileSize((int) $t['free_len']),
+			];
+		}
+
+		$metrics = [
+			['COM_FGSYSTEMREPORT_DB_M_TOTAL_SIZE', FgsystemreportHelper::formatFileSize($total)],
+			['COM_FGSYSTEMREPORT_DB_M_OVERHEAD', FgsystemreportHelper::formatFileSize($overhead)],
+		];
+
+		$status = $overhead > self::OVERHEAD_WARN ? 'warning' : 'ok';
+
+		return self::step(
+			'largest',
+			$status,
+			FgsystemreportHelper::formatFileSize($total),
+			$metrics,
+			$status === 'ok' ? '' : 'COM_FGSYSTEMREPORT_DB_OVERHEAD_HIGH',
+			['head' => ['COM_FGSYSTEMREPORT_DB_COL_TABLE', 'COM_FGSYSTEMREPORT_DB_COL_ROWS', 'COM_FGSYSTEMREPORT_DB_COL_SIZE', 'COM_FGSYSTEMREPORT_DB_COL_OVERHEAD'], 'rows' => $rows]
+		);
+	}
+}

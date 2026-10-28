@@ -28,6 +28,24 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.7.0]
+
+### Added
+- New "Database" page: read-only diagnostics for MySQL / MariaDB - server
+  version and default character set, key server variables (max_allowed_packet,
+  max_connections, wait_timeout, InnoDB settings), presence of the Joomla core
+  tables, storage engines (flags MyISAM), collation consistency (flags mixed
+  or non-utf8mb4), total size, reclaimable space and the 10 largest tables.
+  Cached for 5 minutes; "Run again" bypasses the cache.
+- Security Check: "Folder permissions" - flags world-writable folders
+  (root, administrator, plugins, cache, tmp, logs, images) as critical and
+  missing/read-only folders Joomla must write to as a warning. Plain
+  "writable" is not flagged, to avoid false positives on shared hosting.
+- Security Check: "Orphaned asset rows" - counts rows in the assets table whose
+  parent no longer exists (detection only, nothing is modified).
+- Idea source: feature survey of DevArt Utils (GPL-3.0). No code was copied;
+  everything here is an independent implementation.
+
 ## [1.6.0]
 
 ### Added

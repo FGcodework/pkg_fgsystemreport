@@ -1007,6 +1007,48 @@ class FgsystemreportHelper
 			$sysCacheEnabled ? Text::_('JYES') : Text::_('JNO'),
 			$sysCacheEnabled ? Text::_('COM_FGSYSTEMREPORT_SEC_SYSTEM_CACHE_ENABLED') : '');
 
+		// 24) Folder permissions: world-writable folders are dangerous;
+		// folders Joomla must write to (cache, tmp, logs, images) being
+		// missing or read-only breaks features.
+		$perm     = SiteHealthHelper::folderPermissions();
+		$world    = [];
+		$problems = [];
+
+		foreach ($perm as $r) {
+			$txt = $r['name'] . ($r['perm'] !== '' ? ' (' . $r['perm'] . ')' : '');
+
+			if ($r['problem'] === 'world') {
+				$world[] = $txt;
+			} elseif ($r['problem'] !== '') {
+				$problems[] = $txt;
+			}
+		}
+
+		$permValue = (count($perm) - count($world) - count($problems)) . '/' . count($perm);
+
+		if ($world) {
+			$add('COM_FGSYSTEMREPORT_SEC_FOLDER_PERMS', 'danger', $permValue,
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_FOLDER_PERMS_WORLD', implode(', ', $world)));
+		} elseif ($problems) {
+			$add('COM_FGSYSTEMREPORT_SEC_FOLDER_PERMS', 'warning', $permValue,
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_FOLDER_PERMS_PROBLEM', implode(', ', $problems)));
+		} else {
+			$add('COM_FGSYSTEMREPORT_SEC_FOLDER_PERMS', 'ok', $permValue, '');
+		}
+
+		// 25) Orphaned rows in the assets table (parent no longer exists).
+		$orphans = SiteHealthHelper::orphanAssets();
+
+		if ($orphans === null) {
+			$add('COM_FGSYSTEMREPORT_SEC_ORPHAN_ASSETS', 'info', Text::_('JNONE'),
+				Text::_('COM_FGSYSTEMREPORT_SEC_ORPHAN_ASSETS_CHECK_FAILED'));
+		} elseif ($orphans > 0) {
+			$add('COM_FGSYSTEMREPORT_SEC_ORPHAN_ASSETS', 'warning', (string) $orphans,
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_ORPHAN_ASSETS_FOUND', $orphans));
+		} else {
+			$add('COM_FGSYSTEMREPORT_SEC_ORPHAN_ASSETS', 'ok', '0', '');
+		}
+
 		return $checks;
 	}
 
