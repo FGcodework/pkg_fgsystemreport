@@ -32,7 +32,10 @@ use Joomla\CMS\Uri\Uri;
  */
 class HtmlView extends BaseHtmlView
 {
-    public const OPTIONS = ['trend', 'changes', 'errors', 'storage', 'details'];
+    public const OPTIONS = ['trend', 'changes', 'errors', 'storage', 'extensions', 'core', 'details'];
+
+    /** Sections that are off until ticked */
+    public const DEFAULT_OFF = ['core'];
 
     /** @var array<string,bool> */
     public $opt = [];
@@ -49,6 +52,7 @@ class HtmlView extends BaseHtmlView
     public $errors   = null;
     public $disk     = null;
     public $db       = null;
+    public $extensions = [];
     public $printUrl = '';
     public $tz       = 'UTC';
 
@@ -66,7 +70,7 @@ class HtmlView extends BaseHtmlView
 
         // Sections default to on; once the form was submitted only ticked ones are on
         foreach (self::OPTIONS as $o) {
-            $this->opt[$o] = $submitted ? (bool) $input->getInt('o_' . $o, 0) : true;
+            $this->opt[$o] = $submitted ? (bool) $input->getInt('o_' . $o, 0) : !in_array($o, self::DEFAULT_OFF, true);
         }
 
         $this->client = mb_substr(trim((string) $input->getString('client', '')), 0, 120);
@@ -98,6 +102,10 @@ class HtmlView extends BaseHtmlView
         if ($this->opt['storage']) {
             [$this->disk] = DiskHistoryHelper::getLatestTwo(['cache', 'tmp', 'logs', '.git', '.svn', 'node_modules']);
             [$this->db]   = DbHistoryHelper::getLatestTwo();
+        }
+
+        if ($this->opt['extensions']) {
+            $this->extensions = FgsystemreportHelper::getInstalledExtensions($this->opt['core']);
         }
 
         $q = ['option' => 'com_fgsystemreport', 'view' => 'report', 'tmpl' => 'component'];

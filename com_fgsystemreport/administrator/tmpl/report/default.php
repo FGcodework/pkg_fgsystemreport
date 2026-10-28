@@ -50,7 +50,7 @@ $evLbl  = static fn ($t) => Text::_('COM_FGSYSTEMREPORT_CHANGE_T_' . strtoupper(
                         <input type="text" class="form-control form-control-sm" id="fg-rep-client" name="client" maxlength="120" value="<?php echo $h($this->client); ?>">
                     </div>
                     <div class="col-md-8">
-                        <?php foreach (['trend', 'changes', 'errors', 'storage', 'details'] as $o) : ?>
+                        <?php foreach (['trend', 'changes', 'errors', 'storage', 'extensions', 'core', 'details'] as $o) : ?>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" id="fg-rep-<?php echo $o; ?>" name="o_<?php echo $o; ?>" value="1"<?php echo $this->opt[$o] ? ' checked' : ''; ?>>
                                 <label class="form-check-label" for="fg-rep-<?php echo $o; ?>"><?php echo Text::_('COM_FGSYSTEMREPORT_REPORT_OPT_' . strtoupper($o)); ?></label>
@@ -63,6 +63,7 @@ $evLbl  = static fn ($t) => Text::_('COM_FGSYSTEMREPORT_CHANGE_T_' . strtoupper(
                     </div>
                     <div class="col-12">
                         <button type="submit" class="btn btn-sm btn-primary"><?php echo Text::_('COM_FGSYSTEMREPORT_REPORT_APPLY'); ?></button>
+                        <a class="btn btn-sm btn-outline-secondary" href="index.php?option=com_fgsystemreport&amp;view=fgsystemreport#fg-pdf-block"><?php echo Text::_('COM_FGSYSTEMREPORT_REPORT_LINK_INVENTORY'); ?> &rarr;</a>
                         <a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="<?php echo $h($this->printUrl); ?>"><span class="icon-print me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_REPORT_OPEN_PRINT'); ?></a>
                     </div>
                 </form>
@@ -249,6 +250,47 @@ $evLbl  = static fn ($t) => Text::_('COM_FGSYSTEMREPORT_CHANGE_T_' . strtoupper(
                             </div>
                         <?php endforeach; ?>
                     </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($this->opt['extensions']) : ?>
+        <?php
+        $exts    = $this->extensions;
+        $upd     = count(array_filter($exts, static fn ($e) => !empty($e->has_update)));
+        $off     = count(array_filter($exts, static fn ($e) => (int) $e->enabled !== 1));
+        ?>
+        <div class="card">
+            <div class="card-header"><h3><?php echo Text::_('COM_FGSYSTEMREPORT_REPORT_EXTENSIONS'); ?></h3></div>
+            <div class="card-body<?php echo $exts ? ' p-0' : ''; ?>">
+                <?php if (!$exts) : ?>
+                    <p class="mb-0 text-muted"><?php echo Text::_('COM_FGSYSTEMREPORT_REPORT_EXT_NONE'); ?></p>
+                <?php else : ?>
+                    <p class="small px-3 pt-2 mb-1"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_REPORT_EXT_SUMMARY', count($exts), $upd, $off); ?></p>
+                    <table class="table table-sm mb-0">
+                        <thead><tr>
+                            <th><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_COL_NAME'); ?></th>
+                            <th><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_COL_TYPE'); ?></th>
+                            <th><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_COL_STATE'); ?></th>
+                            <th><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_COL_CURRENT_VERSION'); ?></th>
+                            <th><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_COL_NEW_VERSION'); ?></th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($exts as $e) :
+                            $tk = 'COM_FGSYSTEMREPORT_TYPE_' . strtoupper($e->type);
+                            $tl = Text::_($tk) === $tk ? ucfirst($e->type) : Text::_($tk);
+                            ?>
+                            <tr style="break-inside:avoid;<?php echo !empty($e->has_update) ? 'background:#fdecea;' : ''; ?>">
+                                <td><?php echo !empty($e->is_child) ? '<span class="text-muted">&raquo;</span> ' : ''; ?><?php echo !empty($e->is_package) ? '<strong>' . $h($e->display_name) . '</strong>' : $h($e->display_name); ?></td>
+                                <td><?php echo $h($tl); ?></td>
+                                <td><?php echo (int) $e->enabled === 1 ? Text::_('COM_FGSYSTEMREPORT_EXT_ENABLED') : '<strong style="color:#dc3545;">' . Text::_('COM_FGSYSTEMREPORT_EXT_DISABLED') . '</strong>'; ?></td>
+                                <td><?php echo $h($e->installed_version); ?></td>
+                                <td><?php echo !empty($e->has_update) ? '<strong style="color:#dc3545;">' . $h($e->available_version) . '</strong>' : $h($e->available_version); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 <?php endif; ?>
             </div>
         </div>

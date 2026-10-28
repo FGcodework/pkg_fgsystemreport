@@ -273,12 +273,13 @@ use Joomla\CMS\Language\Text;
     </div>
     <!-- SECTION 1: PDF Download Configuration -->
     <!-- Download report option as CSV or PDF -->
-    <div class="jc-audit-btn" style="position: relative; display: block; margin-bottom: 15px;">
+    <div class="jc-audit-btn" id="fg-pdf-block" style="position: relative; display: block; margin-bottom: 15px;">
         <form method="post" action="index.php?option=com_fgsystemreport&task=fgsystemreport.generatePDF" style="margin:0;">
             <?php echo Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
             <div style="margin-top: 30px; margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #269DD8; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                     <h3 style="margin: 0;"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_PDF_HEADING'); ?></h3>
+                    <a href="index.php?option=com_fgsystemreport&amp;view=report" style="font-size:13px;"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_LINK_HEALTH_REPORT'); ?> &rarr;</a>
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <input type="email" name="pdf_email_recipient" placeholder="<?php echo Text::_('COM_FGSYSTEMREPORT_DASH_PDF_EMAIL_PLACEHOLDER'); ?>"
                             style="padding:7px 10px; border:1px solid #ccc; border-radius:4px; width:220px;">

@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.11.1]
+
+### Changed
+- The Dashboard's PDF block is now called **Site inventory (PDF)** (it lists counts, server/Joomla information, template overrides and extensions, and can be e-mailed), and links to the new Report page; the Report page links back to it. The two are complementary: the inventory is a real PDF file, the Report is the health/security print view.
+
+### Added
+- Report: optional **Installed extensions** section (name, type, state, installed and available version, updates highlighted; third-party only unless "incl. Joomla core extensions" is ticked).
+
 ## [1.11.0]
 
 ### Added
