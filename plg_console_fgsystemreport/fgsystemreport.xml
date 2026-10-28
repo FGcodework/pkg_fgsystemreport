@@ -5,7 +5,7 @@
     <creationDate>2026-10</creationDate>
     <copyright>2026 Fero</copyright>
     <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <description>PLG_CONSOLE_FGSYSTEMREPORT_XML_DESCRIPTION</description>
     <namespace path="src">Joomla\Plugin\Console\Fgsystemreport</namespace>
     <files>

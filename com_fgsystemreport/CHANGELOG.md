@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.9.1]
+
+### Fixed
+- Console and quick icon plugins (both 1.0.1): the service provider called `setDatabase()`, which these plugins do not have, so the administrator Home page crashed with "Call to undefined method ... setDatabase()" as soon as the quick icon plugin was enabled.
+
 ## [1.9.0]
 
 ### Added

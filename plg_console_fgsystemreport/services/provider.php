@@ -31,7 +31,6 @@ return new class () implements ServiceProviderInterface {
                     (array) PluginHelper::getPlugin('console', 'fgsystemreport')
                 );
                 $plugin->setApplication(Factory::getApplication());
-                $plugin->setDatabase($container->get(DatabaseInterface::class));
 
                 return $plugin;
             }
