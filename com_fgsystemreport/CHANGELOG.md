@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.11.0]
+
+### Added
+- **Report** page (new submenu item, `core.admin` only): a one-page printable site health report - security score, findings that need attention (with what to do), passed checks, 30-day score trend, recent changes, errors by source, and the largest folders and database tables. Optional "Prepared for" name for client reports, each section can be switched off (e.g. hide the technical notes), and an optional fresh Security Check. "Open print view" opens a clean page (no Joomla chrome) with a Print / Save as PDF button; print CSS hides everything else. It reads stored data only, so opening it never starts a disk scan.
+
 ## [1.10.0]
 
 ### Added
