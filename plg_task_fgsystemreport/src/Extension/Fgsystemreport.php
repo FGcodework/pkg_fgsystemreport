@@ -48,6 +48,10 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'method'          => 'notifySecurityCheck',
             'form'            => 'security_check_notify',
         ],
+        'fgsystemreport.db_growth_check' => [
+            'langConstPrefix' => 'PLG_TASK_FGSYSTEMREPORT_DBGROWTH',
+            'method'          => 'dbGrowthCheck',
+        ],
         'fgsystemreport.disk_growth_check' => [
             'langConstPrefix' => 'PLG_TASK_FGSYSTEMREPORT_DISKGROWTH',
             'method'          => 'diskGrowthCheck',
@@ -69,6 +73,38 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'onExecuteTask'        => 'standardRoutineHandler',
             'onContentPrepareForm' => 'enhanceTaskItemForm',
         ];
+    }
+
+    /**
+     * Take a fresh snapshot of database table sizes. The component records it,
+     * compares it with the previous one and raises the growth alert.
+     *
+     * @param   ExecuteTaskEvent  $event  The task execution event
+     *
+     * @return  int
+     */
+    protected function dbGrowthCheck(ExecuteTaskEvent $event): int
+    {
+        $helper = '\\Fg\\Component\\Fgsystemreport\\Administrator\\Helper\\DbDiagnosticsHelper';
+
+        if (!class_exists($helper) || !class_exists('\\Fg\\Component\\Fgsystemreport\\Administrator\\Helper\\DbHistoryHelper')) {
+            $this->logTask('The FG System Report component (version 1.8.0 or newer) is not installed on this site - cannot run.', 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        try {
+            $helper::$source = 'scheduler';
+            $result          = $helper::run(true);
+        } catch (\Throwable $e) {
+            $this->logTask('Database snapshot failed: ' . $e->getMessage(), 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        $this->logTask('Database snapshot finished (' . count($result['steps'] ?? []) . ' steps).', 'info');
+
+        return Status::OK;
     }
 
     /**

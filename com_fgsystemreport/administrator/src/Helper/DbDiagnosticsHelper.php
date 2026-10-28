@@ -21,6 +21,9 @@ use Joomla\CMS\Language\Text;
  */
 final class DbDiagnosticsHelper
 {
+	/** 'manual' or 'scheduler' - who triggered the current run (e-mail alerts only for scheduler). */
+	public static string $source = 'manual';
+
 	private const MIN_PACKET   = 16777216;       // 16 MB
 	private const OVERHEAD_WARN = 104857600;     // 100 MB reclaimable space
 	private const LIST_LIMIT   = 15;
@@ -88,12 +91,24 @@ final class DbDiagnosticsHelper
 		if ($tables === null) {
 			$steps[] = self::step('tables', 'info', Text::_('JNONE'), [], 'COM_FGSYSTEMREPORT_DB_TABLES_UNAVAILABLE');
 		} else {
+			// Snapshot of table sizes -> growth history and alerts
+			$sizes = [];
+
+			foreach ($tables as $t) {
+				$sizes[self::stripPrefix($db, (string) $t['name'])] = (int) $t['data_len'] + (int) $t['index_len'];
+			}
+
+			DbHistoryHelper::record($sizes);
+			GrowthAlertHelper::checkDb(self::$source);
+			[, $prevSnap] = DbHistoryHelper::getLatestTwo();
+
 			array_push(
 				$steps,
 				self::checkCoreTables($db, $tables),
 				self::checkEngines($db, $tables),
 				self::checkCollations($db, $tables),
-				self::checkLargest($tables)
+				self::checkLargest($db, $tables, $prevSnap),
+				self::checkGrowth($sizes, $prevSnap)
 			);
 		}
 
@@ -333,7 +348,7 @@ final class DbDiagnosticsHelper
 		return self::step('collations', 'ok', $dominant, $metrics);
 	}
 
-	private static function checkLargest(array $tables): array
+	private static function checkLargest($db, array $tables, ?object $prev): array
 	{
 		$total    = 0;
 		$overhead = 0;
@@ -356,6 +371,7 @@ final class DbDiagnosticsHelper
 				number_format((int) $t['rows_n'], 0, ',', ' '),
 				FgsystemreportHelper::formatFileSize($t['size']),
 				FgsystemreportHelper::formatFileSize((int) $t['free_len']),
+				self::fmtDelta($prev, self::stripPrefix($db, (string) $t['name']), (int) $t['size']),
 			];
 		}
 
@@ -372,7 +388,71 @@ final class DbDiagnosticsHelper
 			FgsystemreportHelper::formatFileSize($total),
 			$metrics,
 			$status === 'ok' ? '' : 'COM_FGSYSTEMREPORT_DB_OVERHEAD_HIGH',
-			['head' => ['COM_FGSYSTEMREPORT_DB_COL_TABLE', 'COM_FGSYSTEMREPORT_DB_COL_ROWS', 'COM_FGSYSTEMREPORT_DB_COL_SIZE', 'COM_FGSYSTEMREPORT_DB_COL_OVERHEAD'], 'rows' => $rows]
+			['head' => ['COM_FGSYSTEMREPORT_DB_COL_TABLE', 'COM_FGSYSTEMREPORT_DB_COL_ROWS', 'COM_FGSYSTEMREPORT_DB_COL_SIZE', 'COM_FGSYSTEMREPORT_DB_COL_OVERHEAD', 'COM_FGSYSTEMREPORT_DB_COL_CHANGE'], 'rows' => $rows]
+		);
+	}
+
+	/** "+1.2 MB" / "-3 MB" / "-" relative to the previous snapshot; "" when there is none. */
+	private static function fmtDelta(?object $prev, string $key, int $now): string
+	{
+		if ($prev === null) {
+			return '';
+		}
+
+		if (!array_key_exists($key, $prev->tables)) {
+			return '+' . FgsystemreportHelper::formatFileSize($now);
+		}
+
+		$d = $now - (int) $prev->tables[$key];
+
+		if ($d === 0) {
+			return "\u{2013}";
+		}
+
+		return ($d > 0 ? '+' : "\u{2212}") . FgsystemreportHelper::formatFileSize(abs($d));
+	}
+
+	private static function checkGrowth(array $sizes, ?object $prev): array
+	{
+		if ($prev === null) {
+			return self::step('growth', 'info', Text::_('JNONE'), [], 'COM_FGSYSTEMREPORT_DB_GROWTH_NO_PREVIOUS');
+		}
+
+		$app = Factory::getApplication();
+		$d   = Factory::getDate($prev->scanned_at);
+
+		try {
+			$d->setTimezone(new \DateTimeZone($app->get('offset', 'UTC')));
+		} catch (\Exception $e) {
+			// keep UTC
+		}
+
+		$deltas = [];
+
+		foreach ($sizes as $name => $bytes) {
+			$was = array_key_exists($name, $prev->tables) ? (int) $prev->tables[$name] : 0;
+
+			if ($bytes - $was > 0) {
+				$deltas[$name] = $bytes - $was;
+			}
+		}
+
+		arsort($deltas);
+		$rows = [];
+
+		foreach (array_slice($deltas, 0, 5, true) as $name => $delta) {
+			$rows[] = [$name, '+' . FgsystemreportHelper::formatFileSize($delta), FgsystemreportHelper::formatFileSize($sizes[$name])];
+		}
+
+		$total = array_sum($sizes) - (int) $prev->total;
+
+		return self::step(
+			'growth',
+			'ok',
+			($total >= 0 ? '+' : "\u{2212}") . FgsystemreportHelper::formatFileSize(abs($total)),
+			[['COM_FGSYSTEMREPORT_DB_M_COMPARED', $d->format('d.m.Y H:i', true)]],
+			'',
+			$rows ? ['head' => ['COM_FGSYSTEMREPORT_DB_COL_TABLE', 'COM_FGSYSTEMREPORT_DB_COL_CHANGE', 'COM_FGSYSTEMREPORT_DB_COL_SIZE'], 'rows' => $rows] : []
 		);
 	}
 }

@@ -28,6 +28,25 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.8.0]
+
+### Added
+- Database growth over time. Every Database diagnostics run stores a snapshot of
+  all table sizes (new table `#__fgsystemreport_dbscan`, created lazily, dropped
+  on uninstall, pruned by the history retention setting, max 60 snapshots). The
+  Database page shows a "Change" column for the largest tables and a
+  "Fastest growing tables" box compared with the previous snapshot.
+- Growth alerts for database tables, reusing the folder growth alert channels
+  (dismissible banner, private message to Super Users, optional e-mail for
+  scheduled runs). New Options: growth over MB / percent for tables.
+- Log viewer (Logs menu, requires core.admin): read-only tail of the log files
+  in the configured log folder - file picker, text filter, 100/300/1000 lines,
+  errors in red and warnings in amber. Only plain files with .log/.php/.txt/.json
+  extension directly inside the log folder can be opened (no symlinks, no path
+  traversal); only the last 256 kB of a file are read.
+- Task plugin 1.4.0: new scheduled task "FG System Report: Database Growth
+  Check" (fresh snapshot + alert evaluation; recommended daily).
+
 ## [1.7.1]
 
 ### Changed

@@ -36,6 +36,8 @@ final class GrowthAlertHelper
 			'enabled'    => (int) $p->get('growth_alert_enabled', 1) === 1,
 			'mb'         => max(0, (int) $p->get('growth_alert_mb', 100)),
 			'pct'        => max(0, (int) $p->get('growth_alert_percent', 25)),
+			'db_mb'      => max(0, (int) $p->get('growth_alert_db_mb', 50)),
+			'db_pct'     => max(0, (int) $p->get('growth_alert_db_percent', 25)),
 			'message'    => (int) $p->get('growth_alert_message', 1) === 1,
 			'email'      => (int) $p->get('growth_alert_email', 0) === 1,
 			'recipients' => trim((string) $p->get('growth_alert_recipients', '')),
@@ -131,54 +133,82 @@ final class GrowthAlertHelper
 
 			[$cur, $prev] = DiskHistoryHelper::getLatestTwo($exclude);
 
-			if ($cur === null || $prev === null || !self::ensureTable()) {
+			if ($cur === null || $prev === null) {
 				return;
 			}
 
 			$items = self::detect((array) $cur->dirs, (array) $prev->dirs, $cfg['mb'], $cfg['pct']);
+			self::raise('disk', $items, $prev, $cur, $source);
+		} catch (\Throwable $e) {
+			// Alerting must never break a scan.
+		}
+	}
 
-			if (!$items) {
+	/**
+	 * Call right after a new database size snapshot was recorded.
+	 */
+	public static function checkDb(string $source = 'manual'): void
+	{
+		try {
+			$cfg = self::settings();
+
+			if (!$cfg['enabled'] || (!$cfg['db_mb'] && !$cfg['db_pct'])) {
 				return;
 			}
 
-			$hash = md5(json_encode($items));
-			$db   = Factory::getContainer()->get('DatabaseDriver');
-			$last = $db->setQuery(
-				$db->getQuery(true)->select($db->quoteName('hash'))->from($db->quoteName(self::TABLE))
-					->order($db->quoteName('id') . ' DESC'),
-				0,
-				1
-			)->loadResult();
+			[$cur, $prev] = DbHistoryHelper::getLatestTwo();
 
-			if ($last === $hash) {
-				return; // same finding as the previous alert (e.g. repeated rescan)
+			if ($cur === null || $prev === null) {
+				return;
 			}
 
-			$payload = [
+			$items = self::detect((array) $cur->tables, (array) $prev->tables, $cfg['db_mb'], $cfg['db_pct']);
+			self::raise('db', $items, $prev, $cur, $source);
+		} catch (\Throwable $e) {
+			// Alerting must never break the diagnostics.
+		}
+	}
+
+	private static function raise(string $type, array $items, object $prev, object $cur, string $source): void
+	{
+		if (!$items || !self::ensureTable()) {
+			return;
+		}
+
+		$cfg  = self::settings();
+		$hash = md5($type . json_encode($items));
+		$db   = Factory::getContainer()->get('DatabaseDriver');
+		$last = $db->setQuery(
+			$db->getQuery(true)->select($db->quoteName('hash'))->from($db->quoteName(self::TABLE))
+				->order($db->quoteName('id') . ' DESC'),
+			0,
+			10
+		)->loadColumn() ?: [];
+
+		if (in_array($hash, $last, true)) {
+			return; // same finding as a recent alert (e.g. repeated rescan)
+		}
+
+		$db->insertObject(self::TABLE, (object) [
+			'created_at' => Factory::getDate()->toSql(),
+			'hash'       => $hash,
+			'dismissed'  => 0,
+			'payload'    => json_encode([
+				'type'      => $type,
 				'prev_time' => $prev->scanned_at,
 				'cur_time'  => $cur->scanned_at,
 				'items'     => $items,
-			];
+			]),
+		]);
 
-			$row = (object) [
-				'created_at' => Factory::getDate()->toSql(),
-				'hash'       => $hash,
-				'dismissed'  => 0,
-				'payload'    => json_encode($payload),
-			];
-			$db->insertObject(self::TABLE, $row);
+		self::prune();
 
-			self::prune();
+		if ($cfg['message']) {
+			self::sendMessages($items, $type);
+		}
 
-			if ($cfg['message']) {
-				self::sendMessages($items);
-			}
-
-			if ($cfg['email'] && $source === 'scheduler') {
-				self::sendMail($items);
-			}
-		} catch (\Throwable $e) {
-			// Alerting must never break a scan.
+		if ($cfg['email'] && $source === 'scheduler') {
+			self::sendMail($items, $error, $type);
 		}
 	}
 
@@ -192,33 +222,38 @@ final class GrowthAlertHelper
 		)->execute();
 	}
 
-	/** Newest alert that was not dismissed, or null. */
-	public static function latest(): ?object
+	/** Newest undismissed alert of each type ('disk', 'db'). */
+	public static function latestAll(): array
 	{
+		$out = [];
+
 		try {
 			if (!self::ensureTable()) {
-				return null;
+				return [];
 			}
 
-			$db  = Factory::getContainer()->get('DatabaseDriver');
-			$row = $db->setQuery(
+			$db   = Factory::getContainer()->get('DatabaseDriver');
+			$rows = $db->setQuery(
 				$db->getQuery(true)->select('*')->from($db->quoteName(self::TABLE))
 					->where($db->quoteName('dismissed') . ' = 0')
 					->order($db->quoteName('id') . ' DESC'),
 				0,
-				1
-			)->loadObject();
+				20
+			)->loadObjectList() ?: [];
 
-			if (!$row) {
-				return null;
+			foreach ($rows as $row) {
+				$row->data = json_decode((string) $row->payload, true) ?: [];
+				$type      = (string) ($row->data['type'] ?? 'disk');
+
+				if (!isset($out[$type])) {
+					$out[$type] = $row;
+				}
 			}
-
-			$row->data = json_decode((string) $row->payload, true) ?: [];
-
-			return $row;
 		} catch (\Throwable $e) {
-			return null;
+			return [];
 		}
+
+		return $out;
 	}
 
 	public static function dismissAll(): void
@@ -270,13 +305,14 @@ final class GrowthAlertHelper
 	}
 
 	/** Private messages (Users -> Private Messages); no mail transport involved. */
-	private static function sendMessages(array $items): void
+	private static function sendMessages(array $items, string $type = 'disk'): void
 	{
 		$db      = Factory::getContainer()->get('DatabaseDriver');
 		$users   = self::superUsers();
 		$site    = (string) Factory::getApplication()->get('sitename', '');
-		$subject = Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_MESSAGE_SUBJECT', $site);
-		$body    = nl2br(htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_GROWTH_MAIL_INTRO') . "\n\n" . self::lines($items), ENT_QUOTES, 'UTF-8'));
+		$pfx     = $type === 'db' ? 'COM_FGSYSTEMREPORT_GROWTH_DB_' : 'COM_FGSYSTEMREPORT_GROWTH_';
+		$subject = Text::sprintf($pfx . 'MESSAGE_SUBJECT', $site);
+		$body    = nl2br(htmlspecialchars(Text::_($pfx . 'MAIL_INTRO') . "\n\n" . self::lines($items), ENT_QUOTES, 'UTF-8'));
 
 		foreach ($users as $u) {
 			$db->insertObject('#__messages', (object) [
@@ -309,7 +345,7 @@ final class GrowthAlertHelper
 	 * @param   array|null  $items  null = test message
 	 * @param   string|null $error  receives the error text on failure
 	 */
-	public static function sendMail(?array $items, ?string &$error = null): bool
+	public static function sendMail(?array $items, ?string &$error = null, string $type = 'disk'): bool
 	{
 		$rcpt = self::recipients();
 
@@ -328,8 +364,9 @@ final class GrowthAlertHelper
 				$mailer->setSubject(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_TEST_SUBJECT', $site));
 				$mailer->setBody(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_TEST_BODY', $site));
 			} else {
-				$mailer->setSubject(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_MESSAGE_SUBJECT', $site));
-				$mailer->setBody(Text::_('COM_FGSYSTEMREPORT_GROWTH_MAIL_INTRO') . "\n\n" . self::lines($items));
+				$pfx = $type === 'db' ? 'COM_FGSYSTEMREPORT_GROWTH_DB_' : 'COM_FGSYSTEMREPORT_GROWTH_';
+				$mailer->setSubject(Text::sprintf($pfx . 'MESSAGE_SUBJECT', $site));
+				$mailer->setBody(Text::_($pfx . 'MAIL_INTRO') . "\n\n" . self::lines($items));
 			}
 
 			foreach ($rcpt as $r) {
@@ -352,36 +389,34 @@ final class GrowthAlertHelper
 		}
 	}
 
-	/** Banner for the component pages. */
+	/** Banners for the component pages (one per alert type). */
 	public static function renderBanner(): void
 	{
-		$alert = self::latest();
-
-		if (!$alert) {
-			return;
-		}
-
-		$items = $alert->data['items'] ?? [];
-		$url   = 'index.php?option=com_fgsystemreport&task=fgsystemreport.dismissGrowthAlert&'
+		$h   = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+		$url = 'index.php?option=com_fgsystemreport&task=fgsystemreport.dismissGrowthAlert&'
 			. Session::getFormToken() . '=1';
-		$h     = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 
-		echo '<div class="alert alert-warning d-flex justify-content-between align-items-start" role="alert"><div>';
-		echo '<strong><span class="icon-warning me-1" aria-hidden="true"></span>' . $h(Text::_('COM_FGSYSTEMREPORT_GROWTH_BANNER_TITLE')) . '</strong>';
-		echo '<ul class="mb-0 mt-1">';
+		foreach (self::latestAll() as $type => $alert) {
+			$items = $alert->data['items'] ?? [];
+			$title = $type === 'db' ? 'COM_FGSYSTEMREPORT_GROWTH_DB_BANNER_TITLE' : 'COM_FGSYSTEMREPORT_GROWTH_BANNER_TITLE';
 
-		foreach (array_slice($items, 0, 5) as $i) {
-			echo '<li><code>' . $h($i['path']) . '</code> +' . $h(FgsystemreportHelper::formatFileSize($i['delta']))
-				. ' (' . $h(FgsystemreportHelper::formatFileSize($i['from'])) . ' &rarr; ' . $h(FgsystemreportHelper::formatFileSize($i['to']))
-				. ', +' . $h($i['pct']) . '%)</li>';
+			echo '<div class="alert alert-warning d-flex justify-content-between align-items-start" role="alert"><div>';
+			echo '<strong><span class="icon-warning me-1" aria-hidden="true"></span>' . $h(Text::_($title)) . '</strong>';
+			echo '<ul class="mb-0 mt-1">';
+
+			foreach (array_slice($items, 0, 5) as $i) {
+				echo '<li><code>' . $h($i['path']) . '</code> +' . $h(FgsystemreportHelper::formatFileSize($i['delta']))
+					. ' (' . $h(FgsystemreportHelper::formatFileSize($i['from'])) . ' &rarr; ' . $h(FgsystemreportHelper::formatFileSize($i['to']))
+					. ', +' . $h($i['pct']) . '%)</li>';
+			}
+
+			if (count($items) > 5) {
+				echo '<li>' . $h(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_MORE', count($items) - 5)) . '</li>';
+			}
+
+			echo '</ul></div>';
+			echo '<a class="btn btn-sm btn-outline-secondary ms-3 text-nowrap" href="' . $h($url) . '">' . $h(Text::_('COM_FGSYSTEMREPORT_GROWTH_DISMISS')) . '</a>';
+			echo '</div>';
 		}
-
-		if (count($items) > 5) {
-			echo '<li>' . $h(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_MORE', count($items) - 5)) . '</li>';
-		}
-
-		echo '</ul></div>';
-		echo '<a class="btn btn-sm btn-outline-secondary ms-3 text-nowrap" href="' . $h($url) . '">' . $h(Text::_('COM_FGSYSTEMREPORT_GROWTH_DISMISS')) . '</a>';
-		echo '</div>';
 	}
 }

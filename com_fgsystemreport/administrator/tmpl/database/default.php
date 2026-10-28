@@ -7,6 +7,7 @@
 defined('_JEXEC') or die;
 
 use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper;
 use Joomla\CMS\Language\Text;
 
 $badge = [
@@ -23,6 +24,7 @@ $tr = static function (string $s): string {
 };
 $h = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 ?>
+<?php GrowthAlertHelper::renderBanner(); ?>
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="m-0" style="font-size:16px;">
