@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="quickicon" method="upgrade">
+    <name>PLG_QUICKICON_FGSYSTEMREPORT</name>
+    <author>Fero</author>
+    <creationDate>2026-10</creationDate>
+    <copyright>2026 Fero</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <version>1.0.0</version>
+    <description>PLG_QUICKICON_FGSYSTEMREPORT_XML_DESCRIPTION</description>
+    <namespace path="src">Joomla\Plugin\Quickicon\Fgsystemreport</namespace>
+    <files>
+        <folder plugin="fgsystemreport">services</folder>
+        <folder>src</folder>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_quickicon_fgsystemreport.ini</language>
+        <language tag="en-GB">en-GB/plg_quickicon_fgsystemreport.sys.ini</language>
+        <language tag="de-DE">de-DE/plg_quickicon_fgsystemreport.ini</language>
+        <language tag="de-DE">de-DE/plg_quickicon_fgsystemreport.sys.ini</language>
+        <language tag="sk-SK">sk-SK/plg_quickicon_fgsystemreport.ini</language>
+        <language tag="sk-SK">sk-SK/plg_quickicon_fgsystemreport.sys.ini</language>
+    </languages>
+</extension>

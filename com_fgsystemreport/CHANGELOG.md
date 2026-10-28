@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.9.0]
+
+### Added
+- **Console command** `fgsystemreport:check` (new plugin `plg_console_fgsystemreport` 1.0.0): runs the full Security Check from the CLI / cron (`php cli/joomla.php fgsystemreport:check`). Options: `--format=text|json`, `--fail-on=danger|warning|never`, `--url=https://example.com` (site address for the HTTP-based checks when `live_site` is not set), `--no-record`. Exit codes: 0 OK, 1 warnings (with `--fail-on=warning`), 2 critical, 3 could not run. Runs are recorded in the Security History with source "CLI".
+- **Quick icon on the administrator Home page** (new plugin `plg_quickicon_fgsystemreport` 1.0.0): shows the latest recorded Security Check score, coloured by severity (and flagged when older than 7 days), linking to the Security page. It only reads the latest history row, never runs a live check, and is shown only to users with `core.manage` on the component.
+- Security History source "CLI" (EN/SK/DE).
+
+### Changed
+- The package now contains four extensions (component, task, console and quick icon plugins). The installer script enables the new plugins on a fresh install and on the first update that brings them; later updates never re-enable a plugin you disabled.
+
 ## [1.8.0]
 
 ### Added

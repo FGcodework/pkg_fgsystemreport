@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="console" method="upgrade">
+    <name>PLG_CONSOLE_FGSYSTEMREPORT</name>
+    <author>Fero</author>
+    <creationDate>2026-10</creationDate>
+    <copyright>2026 Fero</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <version>1.0.0</version>
+    <description>PLG_CONSOLE_FGSYSTEMREPORT_XML_DESCRIPTION</description>
+    <namespace path="src">Joomla\Plugin\Console\Fgsystemreport</namespace>
+    <files>
+        <folder plugin="fgsystemreport">services</folder>
+        <folder>src</folder>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_console_fgsystemreport.ini</language>
+        <language tag="en-GB">en-GB/plg_console_fgsystemreport.sys.ini</language>
+        <language tag="de-DE">de-DE/plg_console_fgsystemreport.ini</language>
+        <language tag="de-DE">de-DE/plg_console_fgsystemreport.sys.ini</language>
+        <language tag="sk-SK">sk-SK/plg_console_fgsystemreport.ini</language>
+        <language tag="sk-SK">sk-SK/plg_console_fgsystemreport.sys.ini</language>
+    </languages>
+</extension>

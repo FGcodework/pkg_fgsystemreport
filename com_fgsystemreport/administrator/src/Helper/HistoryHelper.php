@@ -93,7 +93,7 @@ class HistoryHelper
 	 * the table is unavailable).
 	 *
 	 * @param   array   $checks  Result of getSecurityChecks()
-	 * @param   string  $source  'manual' or 'scheduler'
+	 * @param   string  $source  'manual', 'scheduler' or 'cli'
 	 */
 	public static function record(array $checks, string $source = 'manual'): ?int
 	{
@@ -135,7 +135,7 @@ class HistoryHelper
 
 			$row = (object) [
 				'run_at'         => Factory::getDate()->toSql(),
-				'source'         => $source === 'scheduler' ? 'scheduler' : 'manual',
+				'source'         => in_array($source, ['scheduler', 'cli'], true) ? $source : 'manual',
 				'score'          => (int) $score->score,
 				'count_ok'       => $ok,
 				'count_warning'  => (int) $score->warningCount,
@@ -148,6 +148,33 @@ class HistoryHelper
 			$db->insertObject(self::TABLE, $row);
 
 			return (int) $db->insertid();
+		} catch (\Throwable $e) {
+			return null;
+		}
+	}
+
+	/**
+	 * The most recent recorded run (without the per-check results), or null
+	 * when there is none or the table is unavailable. Cheap - used by the
+	 * admin Home quick icon, which must never run a live check.
+	 */
+	public static function getLatestRun(): ?object
+	{
+		if (!self::ensureTable()) {
+			return null;
+		}
+
+		try {
+			$db = Factory::getContainer()->get('DatabaseDriver');
+
+			return $db->setQuery(
+				$db->getQuery(true)
+					->select(['id', 'run_at', 'source', 'score', 'count_ok', 'count_warning', 'count_danger'])
+					->from($db->quoteName(self::TABLE))
+					->order($db->quoteName('id') . ' DESC'),
+				0,
+				1
+			)->loadObject() ?: null;
 		} catch (\Throwable $e) {
 			return null;
 		}
