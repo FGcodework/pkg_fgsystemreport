@@ -23,6 +23,7 @@ use Joomla\CMS\Table\Extension;
 
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\AcceptedRiskHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\HistoryHelper;
 use Joomla\CMS\MVC\Controller\AdminController;
 use Joomla\CMS\Router\Route;
@@ -197,6 +198,37 @@ class FgsystemreportController extends FormController
         $app = Factory::getApplication();
         $app->enqueueMessage(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEARED'));
         $app->redirect(Route::_('index.php?option=com_fgsystemreport&view=history', false));
+    }
+
+    /**
+     * Mark a Security Check finding as an accepted risk (POST, core.admin).
+     *
+     * @return  void
+     */
+    public function acceptRisk()
+    {
+        $this->requireAccess('core.admin');
+        Session::checkToken() or die(Text::_('JINVALID_TOKEN'));
+        $input = Factory::getApplication()->getInput();
+        $ok    = AcceptedRiskHelper::accept((string) $input->post->getString('check_key', ''), (string) $input->post->getString('note', ''));
+        $app   = Factory::getApplication();
+        $app->enqueueMessage(Text::_($ok ? 'COM_FGSYSTEMREPORT_ACCEPTED_SAVED' : 'COM_FGSYSTEMREPORT_ACCEPTED_FAILED'), $ok ? 'message' : 'error');
+        $app->redirect(Route::_('index.php?option=com_fgsystemreport&view=security', false));
+    }
+
+    /**
+     * Withdraw an accepted risk (POST, core.admin).
+     *
+     * @return  void
+     */
+    public function revokeRisk()
+    {
+        $this->requireAccess('core.admin');
+        Session::checkToken() or die(Text::_('JINVALID_TOKEN'));
+        $app = Factory::getApplication();
+        $ok  = AcceptedRiskHelper::revoke((string) $app->getInput()->post->getString('check_key', ''));
+        $app->enqueueMessage(Text::_($ok ? 'COM_FGSYSTEMREPORT_ACCEPTED_REVOKED' : 'COM_FGSYSTEMREPORT_ACCEPTED_FAILED'), $ok ? 'message' : 'error');
+        $app->redirect(Route::_('index.php?option=com_fgsystemreport&view=security', false));
     }
 
     /**

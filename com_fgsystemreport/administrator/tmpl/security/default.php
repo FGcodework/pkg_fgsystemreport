@@ -7,6 +7,7 @@
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
@@ -81,9 +82,33 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                 ?>
                 <tr class="<?php echo $rowClass; ?>">
                     <td><?php echo htmlspecialchars($check->label); ?></td>
-                    <td class="text-center"><span class="badge <?php echo $cls; ?>"><?php echo Text::_($key); ?></span></td>
+                    <td class="text-center">
+                        <span class="badge <?php echo $cls; ?>"><?php echo Text::_($key); ?></span>
+                        <?php if (!empty($check->accepted)) : ?>
+                            <br><span class="badge fgsr-badge-official mt-1"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_BADGE'); ?></span>
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo htmlspecialchars($check->value); ?></td>
-                    <td><?php echo htmlspecialchars($check->note); ?></td>
+                    <td>
+                        <?php echo htmlspecialchars($check->note); ?>
+                        <?php if (!empty($check->key) && !empty($check->accepted)) : ?>
+                            <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.revokeRisk" class="mt-1">
+                                <input type="hidden" name="check_key" value="<?php echo $this->escape($check->key); ?>">
+                                <?php echo HTMLHelper::_('form.token'); ?>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_REVOKE'); ?></button>
+                            </form>
+                        <?php elseif (!empty($check->key) && in_array($check->status, ['warning', 'danger'], true)) : ?>
+                            <details class="mt-1">
+                                <summary class="small text-muted" style="cursor:pointer;"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_ACCEPT_TITLE'); ?></summary>
+                                <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.acceptRisk" class="d-flex gap-2 mt-1">
+                                    <input type="hidden" name="check_key" value="<?php echo $this->escape($check->key); ?>">
+                                    <?php echo HTMLHelper::_('form.token'); ?>
+                                    <input type="text" name="note" maxlength="200" class="form-control form-control-sm" placeholder="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_ACCEPTED_NOTE_PLACEHOLDER')); ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_SAVE'); ?></button>
+                                </form>
+                            </details>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

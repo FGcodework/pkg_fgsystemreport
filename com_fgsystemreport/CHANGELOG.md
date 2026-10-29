@@ -28,6 +28,12 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.0]
+
+### Added
+- Accepted risk: on the Security Check page a warning or critical finding can be accepted with an optional note (and revoked later). An accepted finding is treated as info, so it no longer lowers the score or counts as a warning on the dashboard, in the history, the report, the CLI command and the scheduled task. Super-user (core.admin) only; stored in the new table `#__fgsystemreport_accepted` (created on first use, dropped on uninstall).
+- Every Security Check result now carries a stable `key` (the language constant of the check).
+
 ## [1.12.6]
 
 ### Fixed

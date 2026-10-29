@@ -139,16 +139,16 @@ class FgsystemreportHelper
 				$cache->clean();
 			}
 
-			return $cache->get(
+			return AcceptedRiskHelper::apply((array) $cache->get(
 				[self::class, 'buildSecurityChecks'],
 				[$precomputedLatestVersion, $precomputedExtensions],
 				'security-checks'
-			);
+			));
 		} catch (\Throwable $e) {
 			// Cache unavailable for any reason (e.g. disabled/misconfigured
 			// cache handler) - fall back to computing directly rather than
 			// breaking the page.
-			return self::buildSecurityChecks($precomputedLatestVersion, $precomputedExtensions);
+			return AcceptedRiskHelper::apply(self::buildSecurityChecks($precomputedLatestVersion, $precomputedExtensions));
 		}
 	}
 
@@ -167,6 +167,7 @@ class FgsystemreportHelper
 
 		$add = static function (string $label, string $status, string $value, string $note = '') use (&$checks) {
 			$checks[] = (object) [
+				'key'    => $label,
 				'label'  => Text::_($label),
 				'status' => $status,
 				'value'  => $value,
