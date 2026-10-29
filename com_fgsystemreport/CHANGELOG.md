@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.6]
+
+### Changed
+- Dashboard statistics: the PHP and database versions are coloured by the matching Security Check (green supported, amber ending within 6 months or outdated, red end-of-life or unsupported).
+
 ## [1.13.5]
 
 ### Changed

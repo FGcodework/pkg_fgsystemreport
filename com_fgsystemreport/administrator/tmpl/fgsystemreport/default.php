@@ -24,6 +24,18 @@ use Joomla\CMS\Language\Text;
         }
         $dashLatestJoomla   = $helperClass::fetchLatestJoomlaVersion();
         $dashSecurityChecks = $helperClass::getSecurityChecks($dashLatestJoomla, $dashExtListAll);
+        // Status colour of a stat value, taken from the matching Security Check
+        $dashStatusClass = static function (string $key) use ($dashSecurityChecks): string {
+            foreach ((array) $dashSecurityChecks as $c) {
+                if (($c->key ?? '') === $key) {
+                    $st = $c->orig_status ?? $c->status;
+
+                    return $st === 'danger' ? 'text-danger' : ($st === 'warning' ? 'text-warning' : ($st === 'ok' ? 'text-success' : ''));
+                }
+            }
+
+            return '';
+        };
         $dashSecCounts      = ['warning' => 0, 'danger' => 0];
         foreach ($dashSecurityChecks as $dashCheck) {
             if (isset($dashSecCounts[$dashCheck->status])) {
@@ -132,14 +144,14 @@ use Joomla\CMS\Language\Text;
         </div>
         <div class="fgsr-stat jc-audit-box" data-copy="1">
             <h3 class="fgsr-stat-label"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_STAT_PHP_VERSION'); ?></h3>
-            <p class="fgsr-stat-value"><?php echo phpversion(); ?></p>
+            <p class="fgsr-stat-value"><span class="<?php echo $dashStatusClass('COM_FGSYSTEMREPORT_SEC_PHP'); ?>"><?php echo phpversion(); ?></span></p>
         </div>
         <div class="fgsr-stat jc-audit-box" data-copy="1">
             <h3 class="fgsr-stat-label"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_STAT_MYSQL_VERSION'); ?></h3>
             <p class="fgsr-stat-value">
                 <?php 
                     $db = \Joomla\CMS\Factory::getContainer()->get(\Joomla\Database\DatabaseInterface::class);
-                    echo htmlspecialchars($db->getVersion());
+                    echo '<span class="' . $dashStatusClass('COM_FGSYSTEMREPORT_SEC_DB_VERSION') . '">' . htmlspecialchars($db->getVersion()) . '</span>';
                 ?>
             </p>
         </div>
