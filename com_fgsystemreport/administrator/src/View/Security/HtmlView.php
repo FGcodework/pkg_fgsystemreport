@@ -50,7 +50,13 @@ class HtmlView extends BaseHtmlView
 
         // Record in the history on an explicit re-check, and once as a
         // baseline when no history exists yet (not on every page view).
-        if ($forceRefresh || HistoryHelper::isEmpty()) {
+        // Also when the score shown here differs from the latest recorded run
+        // (e.g. after a risk was accepted or revoked), so the header pill,
+        // the history and this page always agree.
+        $latestRun = HistoryHelper::isEmpty() ? null : HistoryHelper::getLatestRun();
+        $stale     = $latestRun && (int) $latestRun->score !== (int) FgsystemreportHelper::calculateSecurityScore($this->checks)->score;
+
+        if ($forceRefresh || $stale || HistoryHelper::isEmpty()) {
             HistoryHelper::record($this->checks, 'manual');
         }
 

@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.2]
+
+### Fixed
+- Header score pill and history disagreed with the Security Check page after accepting or revoking a risk (the pill shows the latest recorded run). The Security Check page now records a run whenever its score differs from the latest recorded one.
+
 ## [1.13.1]
 
 ### Changed
