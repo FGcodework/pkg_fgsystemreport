@@ -94,13 +94,14 @@ final class ChangeLogHelper
 				return false;
 			}
 
-			$db->insertObject(self::TABLE, (object) [
+			$row = (object) [
 				'created_at' => Factory::getDate()->toSql(),
 				'type'       => $type,
 				'subject'    => $subject,
 				'detail'     => $detail,
 				'user_name'  => mb_substr($user, 0, 150),
-			]);
+			];
+			$db->insertObject(self::TABLE, $row);
 
 			self::prune();
 

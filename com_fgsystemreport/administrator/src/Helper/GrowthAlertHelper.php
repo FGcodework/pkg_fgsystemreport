@@ -189,7 +189,7 @@ final class GrowthAlertHelper
 			return; // same finding as a recent alert (e.g. repeated rescan)
 		}
 
-		$db->insertObject(self::TABLE, (object) [
+		$row = (object) [
 			'created_at' => Factory::getDate()->toSql(),
 			'hash'       => $hash,
 			'dismissed'  => 0,
@@ -199,7 +199,8 @@ final class GrowthAlertHelper
 				'cur_time'  => $cur->scanned_at,
 				'items'     => $items,
 			]),
-		]);
+		];
+		$db->insertObject(self::TABLE, $row);
 
 		self::prune();
 
@@ -315,7 +316,7 @@ final class GrowthAlertHelper
 		$body    = nl2br(htmlspecialchars(Text::_($pfx . 'MAIL_INTRO') . "\n\n" . self::lines($items), ENT_QUOTES, 'UTF-8'));
 
 		foreach ($users as $u) {
-			$db->insertObject('#__messages', (object) [
+			$row = (object) [
 				'user_id_from' => (int) $u->id,
 				'user_id_to'   => (int) $u->id,
 				'folder_id'    => 0,
@@ -324,7 +325,8 @@ final class GrowthAlertHelper
 				'priority'     => 0,
 				'subject'      => $subject,
 				'message'      => $body,
-			]);
+			];
+			$db->insertObject('#__messages', $row);
 		}
 	}
 

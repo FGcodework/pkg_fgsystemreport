@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.4]
+
+### Fixed
+- Change timeline recorded nothing: `insertObject()` takes its object by reference and was given a cast expression, which throws on Joomla 5/6. Fixed there and in the same call used by the disk-growth alerts (database table row and Joomla message).
+
 ## [1.12.3]
 
 ### Added

@@ -6,13 +6,13 @@
     <author>Fero</author>
     <copyright>2026 Fero</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <version>1.12.3</version>
+    <version>1.12.4</version>
     <description>PKG_FGSYSTEMREPORT_XML_DESCRIPTION</description>
     <authorUrl>https://github.com/FGcodework/pkg_fgsystemreport</authorUrl>
     <scriptfile>script.php</scriptfile>
 
     <files folder="packages">
-        <file type="component" id="com_fgsystemreport">com_fgsystemreport_v1.12.3.zip</file>
+        <file type="component" id="com_fgsystemreport">com_fgsystemreport_v1.12.4.zip</file>
         <file type="plugin" id="fgsystemreport" group="task">plg_task_fgsystemreport_v1.4.0.zip</file>
         <file type="plugin" id="fgsystemreport" group="console">plg_console_fgsystemreport_v1.0.1.zip</file>
         <file type="plugin" id="fgsystemreport" group="quickicon">plg_quickicon_fgsystemreport_v1.0.1.zip</file>
