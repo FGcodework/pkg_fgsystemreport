@@ -178,6 +178,7 @@ a.fgsr-pill:hover { border-color: var(--fg-border-hover); transform: translateY(
 .fgsr .badge.bg-warning { background: var(--fg-amber-soft) !important; color: var(--fg-amber) !important; border-color: color-mix(in srgb, var(--fg-amber) 35%, transparent); }
 .fgsr .badge.bg-success { background: var(--fg-green-soft) !important; color: var(--fg-green) !important; border-color: color-mix(in srgb, var(--fg-green) 30%, transparent); }
 .fgsr .badge.bg-primary, .fgsr .badge.bg-info { background: var(--fg-accent-soft) !important; color: var(--fg-accent) !important; border-color: color-mix(in srgb, var(--fg-accent) 30%, transparent); }
+.fgsr .badge.fgsr-badge-official { background: var(--fg-accent-soft) !important; color: var(--fg-accent) !important; border: 1px solid color-mix(in srgb, var(--fg-accent) 35%, transparent) !important; font-weight: 700; }
 .fgsr .badge.bg-secondary, .fgsr .badge.bg-dark { background: transparent !important; color: var(--fg-muted) !important; }
 
 /* ---------- buttons ---------- */

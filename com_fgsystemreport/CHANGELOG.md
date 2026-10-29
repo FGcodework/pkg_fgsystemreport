@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.2]
+
+### Fixed
+- Extensions: the "Official Joomla Project" badge was unreadable (dark text on a solid blue background); it now uses the soft accent badge style.
+
 ## [1.12.1]
 
 ### Changed

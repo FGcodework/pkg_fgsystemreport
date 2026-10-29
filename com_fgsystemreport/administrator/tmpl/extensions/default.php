@@ -77,7 +77,7 @@ $renderRow = function ($ext, $index) {
         </td>
         <td>
             <?php if ($ext->is_official) : ?>
-                <span class="badge bg-info text-dark"><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_OFFICIAL'); ?></span>
+                <span class="badge fgsr-badge-official"><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_OFFICIAL'); ?></span>
             <?php else : ?>
                 <?php echo htmlspecialchars($ext->author !== '' ? $ext->author : '-'); ?>
             <?php endif; ?>
