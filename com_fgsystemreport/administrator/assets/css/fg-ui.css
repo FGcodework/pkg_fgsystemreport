@@ -256,7 +256,10 @@ a.fgsr-pill:hover { border-color: var(--fg-border-hover); transform: translateY(
 }
 .fgsr-stat:hover { transform: translateY(-2px); border-color: var(--fg-border-hover); }
 .fgsr-stat-label { color: var(--fg-muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 6px; }
-.fgsr-stat-value { font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; color: var(--fg-text); word-break: break-word; }
+.fgsr-stat-value { font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; color: var(--fg-accent); word-break: break-word; }
+.fgsr-stat-value .text-success { color: var(--fg-green) !important; }
+.fgsr-stat-value .text-warning { color: var(--fg-amber) !important; }
+.fgsr-stat-value .text-danger { color: var(--fg-red) !important; }
 .fgsr-stat-value strong { font-weight: 800; }
 @media (max-width: 992px) { .fgsr-stats { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .fgsr-stats { grid-template-columns: 1fr; } .fgsr { padding: 14px; border-radius: 16px; } }

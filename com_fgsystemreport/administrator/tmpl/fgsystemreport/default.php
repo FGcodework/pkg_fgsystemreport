@@ -149,7 +149,8 @@ use Joomla\CMS\Language\Text;
                 <?php 
                     $jversion = new \Joomla\CMS\Version();
                     $joomlaVersion = $jversion->getShortVersion();
-                    echo '<span>' . htmlspecialchars($joomlaVersion) . '</span>';
+                    $jvClass = ($dashLatestJoomla && version_compare($joomlaVersion, (string) $dashLatestJoomla, '<')) ? 'text-warning' : ($dashLatestJoomla ? 'text-success' : '');
+                    echo '<span class="' . $jvClass . '">' . htmlspecialchars($joomlaVersion) . '</span>';
                 ?>
             </p>
         </div>

@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.5]
+
+### Changed
+- Dashboard statistics: values are shown in the accent colour again (they were plain text after the redesign); the Joomla version is green when current and amber when an update is available.
+
 ## [1.13.4]
 
 ### Added
