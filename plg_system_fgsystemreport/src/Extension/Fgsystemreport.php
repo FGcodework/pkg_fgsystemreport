@@ -38,6 +38,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'onExtensionAfterUninstall' => 'onUninstall',
             'onExtensionChangeState'    => 'onChangeState',
             'onContentChangeState'      => 'onChangeState',
+            'onAfterRoute'              => 'onAfterRoute',
             'onApplicationBeforeSave'   => 'onConfigSave',
         ];
     }
@@ -203,6 +204,50 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             }
         } catch (\Throwable $e) {
             self::fail('onChangeState', $e);
+        }
+    }
+
+    /**
+     * Fallback for enable/disable from the Plugins / Extensions managers: the
+     * state-change events differ between Joomla versions, so the toggle
+     * request itself (task plugins.publish / unpublish, manage.publish /
+     * unpublish with the selected ids) is recognised as well. Identical events
+     * within a minute are stored once, so a double detection is harmless.
+     */
+    public function onAfterRoute(Event $event): void
+    {
+        try {
+            $app = $this->getApplication();
+
+            if (!$app || !$app->isClient('administrator') || $app->getInput()->getMethod() !== 'POST') {
+                return;
+            }
+
+            $input  = $app->getInput();
+            $option = $input->getCmd('option', '');
+            $task   = strtolower($input->getCmd('task', ''));
+            $map    = [
+                'com_plugins'   => ['plugins.publish' => 1, 'plugins.unpublish' => 0],
+                'com_installer' => ['manage.publish' => 1, 'manage.unpublish' => 0],
+            ];
+
+            if (!isset($map[$option][$task]) || !self::ready()) {
+                return;
+            }
+
+            $identity = $app->getIdentity();
+
+            if (!$identity || !$identity->authorise('core.edit.state', $option)) {
+                return;
+            }
+
+            $ids = (array) $input->post->get('cid', [], 'array');
+
+            foreach (self::rows($ids) as $row) {
+                ChangeLogHelper::record($map[$option][$task] === 1 ? 'enable' : 'disable', self::label($row), self::version($row));
+            }
+        } catch (\Throwable $e) {
+            self::fail('onAfterRoute', $e);
         }
     }
 

@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.6]
+
+### Fixed
+- Change timeline: plugin/extension enable and disable still was not recorded on Joomla 5.4. System plugin 1.0.3 additionally recognises the toggle request itself (Plugins and Extensions managers, publish/unpublish tasks), independent of the state-change event.
+
 ## [1.12.5]
 
 ### Fixed
