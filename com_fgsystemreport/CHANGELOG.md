@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.1]
+
+### Changed
+- Table text is larger and heavier (15px, medium weight, bold first column) for better readability.
+
 ## [1.12.0]
 
 ### Changed

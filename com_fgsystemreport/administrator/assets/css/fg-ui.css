@@ -156,7 +156,10 @@ a.fgsr-pill:hover { border-color: var(--fg-border-hover); transform: translateY(
   color: var(--fg-muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; letter-spacing: .07em;
   border-bottom: 1px solid var(--fg-border);
 }
-.fgsr .table-sm > :not(caption) > * > * { padding: 9px 14px; }
+.fgsr .table-sm > :not(caption) > * > * { padding: 10px 14px; }
+.fgsr .table { font-size: 15px; line-height: 1.45; }
+.fgsr .table > tbody > tr > td { font-weight: 500; color: var(--fg-text); }
+.fgsr .table > tbody > tr > td:first-child { font-weight: 600; }
 .fgsr .table > tbody > tr:last-child > * { border-bottom: 0; }
 .fgsr .table-hover > tbody > tr:hover > * { background-color: var(--fg-accent-soft); color: var(--fg-text); }
 .fgsr .table-danger > * { background-color: var(--fg-red-soft) !important; color: var(--fg-text) !important; }
