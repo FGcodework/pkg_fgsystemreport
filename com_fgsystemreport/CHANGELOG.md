@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.3]
+
+### Fixed
+- "Extensions without an active update site" counted every extension, including Joomla core extensions and the individual members of packages (which never have their own update site), which inflated the number. It now counts only non-core extensions that are not package members, and the note lists the first 12 of them by name.
+
 ## [1.13.2]
 
 ### Fixed

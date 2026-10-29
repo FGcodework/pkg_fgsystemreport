@@ -630,16 +630,30 @@ class FgsystemreportHelper
 		// - these silently go stale since Joomla has no way to ever notify
 		// about updates for them, and an abandoned/unmaintained extension
 		// is a common entry point.
+		// Only extensions that can have their own update site: not Joomla core
+		// (ids below 10000) and not members of a package (the package carries
+		// the update site for its children).
+		$noUpdateSiteNames = [];
+
 		try {
-			$noUpdateSiteCount = (int) $db->setQuery(
-				"SELECT COUNT(*) FROM #__extensions e"
+			$noUpdateSql = " FROM #__extensions e"
 				. " WHERE e.type != 'file' AND e.type != 'language' AND e.locked = 0"
+				. " AND e.extension_id >= 10000 AND (e.package_id = 0 OR e.package_id IS NULL)"
 				. " AND NOT EXISTS ("
 				. "   SELECT 1 FROM #__update_sites_extensions use_"
 				. "   INNER JOIN #__update_sites us ON us.update_site_id = use_.update_site_id"
 				. "   WHERE use_.extension_id = e.extension_id AND us.enabled = 1"
-				. " )"
-			)->loadResult();
+				. " )";
+
+			$noUpdateSiteCount = (int) $db->setQuery('SELECT COUNT(*)' . $noUpdateSql)->loadResult();
+
+			if ($noUpdateSiteCount > 0) {
+				$rows = (array) $db->setQuery('SELECT e.type, e.element, e.folder' . $noUpdateSql . ' ORDER BY e.element', 0, 12)->loadObjectList();
+
+				foreach ($rows as $r) {
+					$noUpdateSiteNames[] = $r->type === 'plugin' ? 'plg_' . $r->folder . '_' . $r->element : $r->element;
+				}
+			}
 		} catch (\Throwable $e) {
 			$noUpdateSiteCount = -1;
 		}
@@ -649,7 +663,8 @@ class FgsystemreportHelper
 				Text::_('COM_FGSYSTEMREPORT_SEC_NO_UPDATE_SITE_CHECK_FAILED'));
 		} elseif ($noUpdateSiteCount > 0) {
 			$add('COM_FGSYSTEMREPORT_SEC_NO_UPDATE_SITE', 'warning', (string) $noUpdateSiteCount,
-				Text::_('COM_FGSYSTEMREPORT_SEC_NO_UPDATE_SITE_FOUND'));
+				Text::_('COM_FGSYSTEMREPORT_SEC_NO_UPDATE_SITE_FOUND') . ' ' . implode(', ', $noUpdateSiteNames)
+				. ($noUpdateSiteCount > count($noUpdateSiteNames) ? ', ...' : ''));
 		} else {
 			$add('COM_FGSYSTEMREPORT_SEC_NO_UPDATE_SITE', 'ok', '0', '');
 		}
