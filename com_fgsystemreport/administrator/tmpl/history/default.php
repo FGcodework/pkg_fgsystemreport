@@ -259,6 +259,13 @@ if ($n > 0) {
     <div class="card-body<?php echo $events ? ' p-0' : ''; ?>">
         <?php if (!$events) : ?>
             <p class="mb-0 text-muted"><?php echo Text::_('COM_FGSYSTEMREPORT_CHANGES_NONE'); ?></p>
+            <?php $diag = \Fg\Component\Fgsystemreport\Administrator\Helper\ChangeLogHelper::diagnose(); ?>
+            <p class="mt-2 mb-0 small">
+                <?php echo Text::sprintf('COM_FGSYSTEMREPORT_CHANGES_DIAG', Text::_('COM_FGSYSTEMREPORT_CHANGES_DIAG_PLUGIN_' . strtoupper($diag['plugin'])), Text::_($diag['table'] ? 'JYES' : 'JNO')); ?>
+                <?php if ($diag['error'] !== '') : ?>
+                    <br><?php echo Text::_('COM_FGSYSTEMREPORT_CHANGES_DIAG_ERROR'); ?> <code><?php echo htmlspecialchars($diag['error']); ?></code>
+                <?php endif; ?>
+            </p>
         <?php else : ?>
             <table class="table table-sm m-0">
                 <thead><tr>

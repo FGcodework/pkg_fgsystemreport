@@ -28,6 +28,12 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.3]
+
+### Added
+- History: when the change timeline is empty it now shows diagnostics (system plugin installed/enabled, events table available, last recording error).
+- System plugin 1.0.1 writes handler errors to `administrator/logs/fgsystemreport_events.log` instead of swallowing them silently.
+
 ## [1.12.2]
 
 ### Fixed

@@ -49,7 +49,25 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
 
     private static function ready(): bool
     {
-        return class_exists(ChangeLogHelper::class);
+        if (class_exists(ChangeLogHelper::class)) {
+            return true;
+        }
+
+        @file_put_contents(
+            JPATH_ADMINISTRATOR . '/logs/fgsystemreport_events.log',
+            gmdate('Y-m-d H:i:s') . ' ready: component helper class not found (is com_fgsystemreport installed?)' . "\n",
+            FILE_APPEND
+        );
+
+        return false;
+    }
+
+    /** Handlers never break the admin, but the reason is kept for the History page. */
+    private static function fail(string $where, \Throwable $e): void
+    {
+        if (self::ready()) {
+            ChangeLogHelper::logError($where, $e);
+        }
     }
 
     /** Short technical label of an extensions row, e.g. plg_system_foo. */
@@ -116,7 +134,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
                 ChangeLogHelper::record($type, self::label($row), self::version($row));
             }
         } catch (\Throwable $e) {
-            // never break an installation
+            self::fail('onInstall', $e);
         }
     }
 
@@ -149,7 +167,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
 
             ChangeLogHelper::record('uninstall', $name, $kind);
         } catch (\Throwable $e) {
-            // never break an uninstall
+            self::fail('onUninstall', $e);
         }
     }
 
@@ -183,7 +201,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
                 ChangeLogHelper::record($value === 1 ? 'enable' : 'disable', self::label($row), self::version($row));
             }
         } catch (\Throwable $e) {
-            // ignore
+            self::fail('onChangeState', $e);
         }
     }
 
@@ -233,7 +251,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
                 ChangeLogHelper::record('config', 'Global Configuration', implode('; ', $changes));
             }
         } catch (\Throwable $e) {
-            // ignore
+            self::fail('onConfigSave', $e);
         }
     }
 }

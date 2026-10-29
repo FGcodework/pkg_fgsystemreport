@@ -106,7 +106,68 @@ final class ChangeLogHelper
 
 			return true;
 		} catch (\Throwable $e) {
+			self::logError('record', $e);
+
 			return false;
+		}
+	}
+
+	/**
+	 * Diagnostics for the empty timeline: is the system plugin installed and
+	 * enabled, does the table exist, and what was the last recording error.
+	 *
+	 * @return  array{plugin:string,table:bool,error:string}  plugin: missing|disabled|enabled
+	 */
+	public static function diagnose(): array
+	{
+		$plugin = 'missing';
+		$error  = '';
+
+		try {
+			$db  = Factory::getContainer()->get('DatabaseDriver');
+			$row = $db->setQuery(
+				$db->getQuery(true)->select($db->quoteName('enabled'))->from($db->quoteName('#__extensions'))
+					->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+					->where($db->quoteName('folder') . ' = ' . $db->quote('system'))
+					->where($db->quoteName('element') . ' = ' . $db->quote('fgsystemreport'))
+			)->loadResult();
+
+			if ($row !== null && $row !== false) {
+				$plugin = (int) $row === 1 ? 'enabled' : 'disabled';
+			}
+		} catch (\Throwable $e) {
+			// unknown
+		}
+
+		try {
+			$f = JPATH_ADMINISTRATOR . '/logs/fgsystemreport_events.log';
+
+			if (is_file($f)) {
+				$lines = array_filter(array_map('trim', (array) file($f)));
+				$error = (string) end($lines);
+			}
+		} catch (\Throwable $e) {
+			// ignore
+		}
+
+		return ['plugin' => $plugin, 'table' => self::ensureTable(), 'error' => $error];
+	}
+
+	/** Remember why recording failed (plugin handlers swallow errors on purpose). */
+	public static function logError(string $where, \Throwable $e): void
+	{
+		try {
+			$dir = JPATH_ADMINISTRATOR . '/logs';
+
+			if (is_dir($dir) && is_writable($dir)) {
+				@file_put_contents(
+					$dir . '/fgsystemreport_events.log',
+					gmdate('Y-m-d H:i:s') . ' ' . $where . ': ' . str_replace(["\r", "\n"], ' ', $e->getMessage()) . "\n",
+					FILE_APPEND
+				);
+			}
+		} catch (\Throwable $x) {
+			// nothing more to do
 		}
 	}
 
