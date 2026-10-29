@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.1]
+
+### Changed
+- Slovak (sk-SK): the 36 missing language keys are translated, so the interface is now fully Slovak (en-GB, sk-SK and de-DE all have 573 keys).
+
 ## [1.13.0]
 
 ### Added
