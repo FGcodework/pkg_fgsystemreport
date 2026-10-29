@@ -37,6 +37,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'onExtensionAfterInstall'   => 'onInstall',
             'onExtensionAfterUninstall' => 'onUninstall',
             'onExtensionChangeState'    => 'onChangeState',
+            'onContentChangeState'      => 'onChangeState',
             'onApplicationBeforeSave'   => 'onConfigSave',
         ];
     }

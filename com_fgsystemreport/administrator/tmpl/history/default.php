@@ -278,7 +278,7 @@ if ($n > 0) {
                 <?php foreach (array_slice(array_reverse($events), 0, 60) as $ev) : ?>
                     <tr>
                         <td class="text-nowrap"><?php echo htmlspecialchars($fmt($ev->created_at)); ?></td>
-                        <td><span class="badge bg-warning text-dark"><?php echo htmlspecialchars($evLabel($ev->type)); ?></span> <?php echo htmlspecialchars($ev->subject); ?></td>
+                        <td><span class="badge <?php echo ['install' => 'bg-primary', 'update' => 'bg-success', 'uninstall' => 'bg-danger', 'enable' => 'bg-success', 'disable' => 'bg-secondary', 'config' => 'bg-warning text-dark'][$ev->type] ?? 'bg-secondary'; ?>"><?php echo htmlspecialchars($evLabel($ev->type)); ?></span> <?php echo htmlspecialchars($ev->subject); ?></td>
                         <td class="small"><?php echo htmlspecialchars($ev->detail); ?></td>
                         <td class="small"><?php echo htmlspecialchars($ev->user_name); ?></td>
                     </tr>

@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.5]
+
+### Fixed
+- Change timeline: enabling/disabling a plugin from the Plugins manager was not recorded (it fires onContentChangeState, not onExtensionChangeState). System plugin 1.0.2 listens to both.
+
+### Changed
+- Timeline badges are colour-coded by type (install blue, update/enable green, uninstall red, disable grey, configuration amber).
+
 ## [1.12.4]
 
 ### Fixed
