@@ -9,6 +9,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 
 $checks = $this->checks ?? [];
 
@@ -25,38 +26,44 @@ foreach ($checks as $c) {
         $counts[$c->status]++;
     }
 }
+$sc       = FgsystemreportHelper::calculateSecurityScore($checks);
+$scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCount > 0 || $sc->score < 90 ? 'is-warn' : 'is-ok');
 ?>
 
-<div class="card" id="jc-security-checks">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="m-0" style="font-size:16px;">
-            <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_HEADING'); ?>
-        </h3>
+<div id="jc-security-checks">
+    <div class="fgsr-hero">
+        <div class="fgsr-ring <?php echo $scState; ?>" style="--p:<?php echo (int) $sc->score; ?>"><span><?php echo (int) $sc->score; ?></span></div>
         <div>
-            <?php if ($counts['danger']) : ?>
-                <span class="badge bg-danger"><?php echo $counts['danger']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_DANGER'); ?></span>
-            <?php endif; ?>
-            <?php if ($counts['warning']) : ?>
-                <span class="badge bg-warning text-dark"><?php echo $counts['warning']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_WARNING'); ?></span>
-            <?php endif; ?>
-            <span class="badge bg-success"><?php echo $counts['ok']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_OK'); ?></span>
-            <a class="btn btn-sm btn-outline-primary ms-2 fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SEC_RECHECKING')); ?>" href="index.php?option=com_fgsystemreport&view=security&force=1">
+            <div class="fgsr-kicker"><?php echo Text::_('COM_FGSYSTEMREPORT_SEC_HEADING'); ?></div>
+            <div class="fgsr-hero-title"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_HEAD_SCORE', (int) $sc->score); ?></div>
+            <div class="fgsr-hero-badges">
+                <?php if ($counts['danger']) : ?>
+                    <span class="badge bg-danger"><?php echo $counts['danger']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_DANGER'); ?></span>
+                <?php endif; ?>
+                <?php if ($counts['warning']) : ?>
+                    <span class="badge bg-warning text-dark"><?php echo $counts['warning']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_WARNING'); ?></span>
+                <?php endif; ?>
+                <span class="badge bg-success"><?php echo $counts['ok']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_OK'); ?></span>
+            </div>
+            <div class="fgsr-hero-actions">
+            <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SEC_RECHECKING')); ?>" href="index.php?option=com_fgsystemreport&view=security&force=1">
                 <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_SEC_RECHECK'); ?>
             </a>
-            <a class="btn btn-sm btn-outline-secondary ms-2" href="index.php?option=com_fgsystemreport&view=history">
+            <a class="btn btn-sm btn-outline-secondary" href="index.php?option=com_fgsystemreport&view=history">
                 <span class="icon-chart me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_TITLE_HISTORY'); ?>
             </a>
-            <a class="btn btn-sm btn-outline-secondary ms-1"
+            <a class="btn btn-sm btn-outline-secondary"
                 href="index.php?option=com_fgsystemreport&task=fgsystemreport.exportSecurityCsv&<?php echo Joomla\CMS\Session\Session::getFormToken(); ?>=1">
                 <span class="icon-download me-1" aria-hidden="true"></span>CSV
             </a>
-            <a class="btn btn-sm btn-outline-secondary ms-1"
+            <a class="btn btn-sm btn-outline-secondary"
                 href="index.php?option=com_fgsystemreport&task=fgsystemreport.exportSecurityJson&<?php echo Joomla\CMS\Session\Session::getFormToken(); ?>=1">
                 <span class="icon-download me-1" aria-hidden="true"></span>JSON
             </a>
+            </div>
         </div>
     </div>
-    <div class="card-body p-0">
+    <div class="card"><div class="card-body p-0">
         <table class="table table-sm table-hover m-0">
             <thead>
                 <tr>
@@ -81,7 +88,7 @@ foreach ($checks as $c) {
             <?php endforeach; ?>
             </tbody>
         </table>
-    </div>
+    </div></div>
 </div>
 
 <?php BusyHelper::render(); ?>

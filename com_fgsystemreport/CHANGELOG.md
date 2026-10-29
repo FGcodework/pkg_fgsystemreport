@@ -28,6 +28,19 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.12.0]
+
+### Changed
+- New admin UI in the visual style of fgcodework.github.io: app header with
+  logo, version and live security-score pill, pill-style tab navigation across
+  all pages, panel cards, rounded tables, pill badges, light and dark mode
+  (follows the Atum colour scheme). All styling lives in one scoped
+  stylesheet (`assets/css/fg-ui.css`) and affects only this component.
+- Dashboard: quick-link tiles with status accent, restyled statistics boxes
+  and PDF section; copy-to-clipboard behaviour unchanged.
+- Security Check: score ring with badge counts and actions at the top.
+- Printable report keeps its clean print layout (no header or tabs).
+
 ## [1.11.1]
 
 ### Changed

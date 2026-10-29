@@ -15,7 +15,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Fg\Component\Fgsystemreport\Administrator\View\FgHtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 

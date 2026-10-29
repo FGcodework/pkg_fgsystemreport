@@ -17,7 +17,7 @@ use Fg\Component\Fgsystemreport\Administrator\Helper\HistoryHelper;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Fg\Component\Fgsystemreport\Administrator\View\FgHtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use Joomla\CMS\Uri\Uri;
 
@@ -66,6 +66,7 @@ class HtmlView extends BaseHtmlView
 
         $input         = $app->getInput();
         $this->isPrint = $input->getCmd('tmpl', '') === 'component';
+        $this->fgChrome = !$this->isPrint;
         $submitted     = $input->getInt('go', 0) === 1 || $this->isPrint;
 
         // Sections default to on; once the form was submitted only ticked ones are on
