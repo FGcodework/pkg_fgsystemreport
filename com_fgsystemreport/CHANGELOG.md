@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.4]
+
+### Added
+- New Security Check "Extension records without files": lists non-core extensions that are registered in Joomla but whose folder is missing on disk (orphaned records).
+
+### Fixed
+- "Extensions without an active update site" no longer lists orphaned records (extensions whose files are gone); they are reported by the new check instead.
+
 ## [1.13.3]
 
 ### Fixed

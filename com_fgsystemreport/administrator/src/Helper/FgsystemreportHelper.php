@@ -634,24 +634,66 @@ class FgsystemreportHelper
 		// (ids below 10000) and not members of a package (the package carries
 		// the update site for its children).
 		$noUpdateSiteNames = [];
+		$orphanNames       = [];
+		$noUpdateSiteCount = 0;
 
 		try {
-			$noUpdateSql = " FROM #__extensions e"
-				. " WHERE e.type != 'file' AND e.type != 'language' AND e.locked = 0"
-				. " AND e.extension_id >= 10000 AND (e.package_id = 0 OR e.package_id IS NULL)"
-				. " AND NOT EXISTS ("
-				. "   SELECT 1 FROM #__update_sites_extensions use_"
+			$extRows = (array) $db->setQuery(
+				"SELECT e.extension_id, e.type, e.element, e.folder, e.client_id, e.package_id,"
+				. " (SELECT COUNT(*) FROM #__update_sites_extensions use_"
 				. "   INNER JOIN #__update_sites us ON us.update_site_id = use_.update_site_id"
-				. "   WHERE use_.extension_id = e.extension_id AND us.enabled = 1"
-				. " )";
+				. "   WHERE use_.extension_id = e.extension_id AND us.enabled = 1) AS active_sites"
+				. " FROM #__extensions e"
+				. " WHERE e.type IN ('plugin', 'component', 'module', 'template', 'library', 'package')"
+				. " AND e.locked = 0 AND e.extension_id >= 10000"
+				. " ORDER BY e.element"
+			)->loadObjectList();
 
-			$noUpdateSiteCount = (int) $db->setQuery('SELECT COUNT(*)' . $noUpdateSql)->loadResult();
+			$base = static function (object $r): array {
+				$client = (int) $r->client_id === 1 ? JPATH_ADMINISTRATOR : JPATH_ROOT;
 
-			if ($noUpdateSiteCount > 0) {
-				$rows = (array) $db->setQuery('SELECT e.type, e.element, e.folder' . $noUpdateSql . ' ORDER BY e.element', 0, 12)->loadObjectList();
+				switch ($r->type) {
+					case 'plugin':
+						return [JPATH_ROOT . '/plugins/' . $r->folder . '/' . $r->element];
+					case 'component':
+						return [JPATH_ADMINISTRATOR . '/components/' . $r->element, JPATH_ROOT . '/components/' . $r->element];
+					case 'module':
+						return [$client . '/modules/' . $r->element];
+					case 'template':
+						return [$client . '/templates/' . $r->element];
+					case 'library':
+						return [JPATH_ROOT . '/libraries/' . $r->element];
+					default:
+						return [];
+				}
+			};
 
-				foreach ($rows as $r) {
-					$noUpdateSiteNames[] = $r->type === 'plugin' ? 'plg_' . $r->folder . '_' . $r->element : $r->element;
+			foreach ($extRows as $r) {
+				$label = $r->type === 'plugin' ? 'plg_' . $r->folder . '_' . $r->element : $r->element;
+				$dirs  = $base($r);
+
+				if ($dirs) {
+					$exists = false;
+
+					foreach ($dirs as $d) {
+						if (is_dir($d)) {
+							$exists = true;
+							break;
+						}
+					}
+
+					if (!$exists) {
+						$orphanNames[] = $label;
+						continue;
+					}
+				}
+
+				if ((int) $r->active_sites === 0 && (int) $r->package_id === 0) {
+					$noUpdateSiteCount++;
+
+					if (count($noUpdateSiteNames) < 12) {
+						$noUpdateSiteNames[] = $label;
+					}
 				}
 			}
 		} catch (\Throwable $e) {
@@ -667,6 +709,19 @@ class FgsystemreportHelper
 				. ($noUpdateSiteCount > count($noUpdateSiteNames) ? ', ...' : ''));
 		} else {
 			$add('COM_FGSYSTEMREPORT_SEC_NO_UPDATE_SITE', 'ok', '0', '');
+		}
+
+		// 12b) Extension records whose files are gone (uninstalled by deleting
+		// the folder, renamed, or a failed install): they clutter the Manage
+		// list and can hide a half-removed extension.
+		if ($noUpdateSiteCount >= 0) {
+			if ($orphanNames) {
+				$add('COM_FGSYSTEMREPORT_SEC_ORPHAN_EXT', 'warning', (string) count($orphanNames),
+					Text::_('COM_FGSYSTEMREPORT_SEC_ORPHAN_EXT_FOUND') . ' ' . implode(', ', array_slice($orphanNames, 0, 12))
+					. (count($orphanNames) > 12 ? ', ...' : ''));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_ORPHAN_EXT', 'ok', '0', '');
+			}
 		}
 
 		// 13) Writable directory permissions and exposed directory listing
