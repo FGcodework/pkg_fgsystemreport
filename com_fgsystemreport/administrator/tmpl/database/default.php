@@ -32,7 +32,7 @@ $h = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
             <small class="text-muted ms-2"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_DB_GENERATED', $h($this->generated)); ?></small>
         </h3>
         <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $h(Text::_('COM_FGSYSTEMREPORT_DB_RUNNING')); ?>"
-           href="index.php?option=com_fgsystemreport&amp;view=database&amp;refresh=1">
+           href="index.php?option=com_fgsystemreport&amp;view=database&amp;refresh=1&amp;<?php echo \Joomla\CMS\Session\Session::getFormToken(); ?>=1">
             <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_DB_RERUN'); ?>
         </a>
     </div>

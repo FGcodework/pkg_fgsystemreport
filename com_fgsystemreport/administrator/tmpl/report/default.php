@@ -42,6 +42,7 @@ $evLbl  = static fn ($t) => Text::_('COM_FGSYSTEMREPORT_CHANGE_T_' . strtoupper(
         <div class="card fg-noprint">
             <div class="card-body">
                 <form method="get" action="index.php" class="row g-3 align-items-end">
+                    <input type="hidden" name="<?php echo \Joomla\CMS\Session\Session::getFormToken(); ?>" value="1">
                     <input type="hidden" name="option" value="com_fgsystemreport">
                     <input type="hidden" name="view" value="report">
                     <input type="hidden" name="go" value="1">

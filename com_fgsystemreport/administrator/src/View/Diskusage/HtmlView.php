@@ -86,7 +86,7 @@ class HtmlView extends BaseHtmlView
         );
 
         $exclude = array_values(array_filter(array_map('trim', explode(',', $this->excludeRaw)), 'strlen'));
-        $forceRefresh = (bool) $app->getInput()->getInt('rescan', 0);
+        $forceRefresh = (bool) $app->getInput()->getInt('rescan', 0) && \Joomla\CMS\Session\Session::checkToken('get');
 
         $result = FgsystemreportHelper::getDiskUsageDisplayData($exclude, $this->topN, $forceRefresh);
 

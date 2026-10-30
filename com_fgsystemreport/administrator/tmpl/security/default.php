@@ -47,7 +47,7 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                 <span class="badge bg-success"><?php echo $counts['ok']; ?> &times; <?php echo Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_OK'); ?></span>
             </div>
             <div class="fgsr-hero-actions">
-            <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SEC_RECHECKING')); ?>" href="index.php?option=com_fgsystemreport&view=security&force=1">
+            <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SEC_RECHECKING')); ?>" href="index.php?option=com_fgsystemreport&view=security&force=1&<?php echo \Joomla\CMS\Session\Session::getFormToken(); ?>=1">
                 <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_SEC_RECHECK'); ?>
             </a>
             <a class="btn btn-sm btn-outline-secondary" href="index.php?option=com_fgsystemreport&view=history">

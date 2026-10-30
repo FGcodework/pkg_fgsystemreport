@@ -36,7 +36,7 @@ class HtmlView extends BaseHtmlView
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $data        = DbDiagnosticsHelper::run((bool) $app->getInput()->getInt('refresh', 0));
+        $data        = DbDiagnosticsHelper::run((bool) $app->getInput()->getInt('refresh', 0) && \Joomla\CMS\Session\Session::checkToken('get'));
         $this->steps = $data['steps'] ?? [];
 
         $d = Factory::getDate($data['time'] ?? time());

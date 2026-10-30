@@ -79,7 +79,7 @@ class HtmlView extends BaseHtmlView
         $this->site   = (string) $app->get('sitename', '');
         $this->siteUrl = rtrim(Uri::root(), '/');
 
-        $fresh        = !$this->isPrint && (bool) $input->getInt('fresh', 0);
+        $fresh        = !$this->isPrint && (bool) $input->getInt('fresh', 0) && \Joomla\CMS\Session\Session::checkToken('get');
         $this->checks = FgsystemreportHelper::getSecurityChecks(null, null, $fresh);
 
         if ($fresh) {

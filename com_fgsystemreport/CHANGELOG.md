@@ -28,6 +28,11 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.10]
+
+### Security
+- The operations that run on a plain GET link (Security Check "Check again" `force=1`, Disk Usage rescan `rescan=1`, Database re-run `refresh=1`, Report "fresh data") had no CSRF protection, so a crafted link could make a logged-in administrator trigger an expensive scan. The links and the Report form now carry the session token and the views run the operation only when the token is valid; otherwise the page shows the cached data as usual.
+
 ## [1.13.9]
 
 ### Security

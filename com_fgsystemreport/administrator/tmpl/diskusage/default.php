@@ -28,7 +28,7 @@ $fmtDelta = static function (int $d): string {
     return '<span class="' . $cls . '">' . ($d > 0 ? '+' : '&minus;') . FgsystemreportHelper::formatFileSize(abs($d)) . '</span>';
 };
 
-$rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&top_n=' . $topN
+$rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&' . \Joomla\CMS\Session\Session::getFormToken() . '=1&top_n=' . $topN
     . '&exclude=' . urlencode($excludeRaw);
 ?>
 

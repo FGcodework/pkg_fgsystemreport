@@ -45,7 +45,7 @@ class HtmlView extends BaseHtmlView
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $forceRefresh = (bool) Factory::getApplication()->getInput()->getInt('force', 0);
+        $forceRefresh = (bool) Factory::getApplication()->getInput()->getInt('force', 0) && \Joomla\CMS\Session\Session::checkToken('get');
         $this->checks = FgsystemreportHelper::getSecurityChecks(null, null, $forceRefresh);
 
         // Record in the history on an explicit re-check, and once as a
