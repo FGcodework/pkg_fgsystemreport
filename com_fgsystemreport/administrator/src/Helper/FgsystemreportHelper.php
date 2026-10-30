@@ -2315,17 +2315,20 @@ class FgsystemreportHelper
 			return 0;
 		}
 
-		$n = (float) $raw;
+		// Accepts 512M, 512 M, 512MB, 1G, 1024K, plain bytes.
+		if (!preg_match('/^\s*(\d+)\s*([kmg])?b?\s*$/i', $raw, $m)) {
+			return 0;
+		}
 
-		switch (strtolower(substr($raw, -1))) {
-			case 'g':
-				$n *= 1024;
-				// no break
-			case 'm':
-				$n *= 1024;
-				// no break
-			case 'k':
-				$n *= 1024;
+		$n    = (float) $m[1];
+		$unit = strtolower($m[2] ?? '');
+
+		if ($unit === 'g') {
+			$n *= 1073741824;
+		} elseif ($unit === 'm') {
+			$n *= 1048576;
+		} elseif ($unit === 'k') {
+			$n *= 1024;
 		}
 
 		return (int) $n;
@@ -2432,7 +2435,14 @@ class FgsystemreportHelper
 				$dirlist[$dirPath]  = 0;
 				$parentOf[$dirPath] = $object->getPath();
 			} else {
-				$size = $object->getSize();
+				// A dangling symlink (or a file that vanished mid-scan) makes
+				// getSize() throw - count it as 0 instead of aborting the scan.
+				try {
+					$size = (int) $object->getSize();
+				} catch (\RuntimeException $e) {
+					$size = 0;
+				}
+
 				$totalSize += $size;
 				$dir = $object->getPath();
 

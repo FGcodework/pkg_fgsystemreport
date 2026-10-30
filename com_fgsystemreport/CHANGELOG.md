@@ -28,6 +28,24 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.23]
+
+### Fixed
+- **Disk scan aborted on a dangling symlink.** `SplFileInfo::getSize()` throws
+  for a broken symbolic link (or a file that disappears during the scan) and
+  the exception was not caught, so one such link made the whole Disk Usage
+  scan fail. Such entries are now counted as 0 bytes. Found while checking a
+  code review's symlink claim (reproduced with a test tree before the fix).
+- Scheduled "Disk Growth Check" now ends as failed (not OK) when the scan hit
+  a limit and was therefore not stored, so it is visible in Scheduled Tasks
+  (task plugin 1.4.3).
+- `memory_limit` parsing in the scan guard accepts spaces and a trailing B
+  (e.g. `512 M`, `512MB`) and treats anything unparsable as "no limit".
+
+### Checked, no change needed
+- Symbolic-link loops: the scan does not follow directory symlinks
+  (`FOLLOW_SYMLINKS` is not set), verified with a self-referencing link.
+
 ## [1.13.22]
 
 ### Changed (CLI command and quick icon, from a code review)

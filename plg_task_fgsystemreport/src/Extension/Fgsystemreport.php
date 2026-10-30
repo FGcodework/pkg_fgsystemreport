@@ -137,9 +137,11 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
         }
 
         if (!empty($result['partial'])) {
-            $this->logTask('Disk scan stopped early (limit: ' . ($result['reason'] ?? '?') . ', ' . (int) ($result['scanned'] ?? 0) . ' entries visited). The result is partial and was NOT stored in the history; raise the limits in the component options if needed.', 'warning');
+            // Nothing was stored, so the growth monitoring did not run: report
+            // the task as failed so it is visible in Scheduled Tasks.
+            $this->logTask('Disk scan stopped early (limit: ' . ($result['reason'] ?? '?') . ', ' . (int) ($result['scanned'] ?? 0) . ' entries visited). The result is partial and was NOT stored in the history, so no growth check was done. Raise the disk scan limits in the component options or add large folders to the exclude list.', 'error');
 
-            return Status::OK;
+            return Status::KNOCKOUT;
         }
 
         $this->logTask('Disk scan finished (' . count($result['dirs'] ?? []) . ' folders recorded).', 'info');
