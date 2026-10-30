@@ -860,11 +860,10 @@ class FgsystemreportHelper
 		// element name), so a hit here is reported as a possible match to
 		// verify manually, never as a confirmed vulnerability.
 		try {
-			$velMatches  = [];
-			$velResponse = @file_get_contents('https://extensions.joomla.org/index.php?option=com_vel&format=json');
+			$velMatches = [];
+			$velData    = self::fetchVelFeed();
 
-			if ($velResponse !== false) {
-				$velData = json_decode($velResponse, true);
+			if ($velData !== null) {
 				$velLive = [];
 
 				if (!empty($velData['success']) && !empty($velData['data']['items'])) {
@@ -900,7 +899,7 @@ class FgsystemreportHelper
 				$velMatches = array_values(array_unique($velMatches));
 			}
 
-			if (!isset($velResponse) || $velResponse === false) {
+			if ($velData === null) {
 				$add('COM_FGSYSTEMREPORT_SEC_VEL', 'info', Text::_('JNONE'),
 					Text::_('COM_FGSYSTEMREPORT_SEC_VEL_CHECK_FAILED'));
 			} elseif (!empty($velMatches)) {
@@ -1581,6 +1580,66 @@ class FgsystemreportHelper
 		$result->issuer   = $cert['issuer']['CN'] ?? $cert['issuer']['O'] ?? '';
 
 		return $result;
+	}
+
+	/**
+	 * Download the Joomla Vulnerable Extensions List feed with explicit limits:
+	 * connect timeout 3 s, total timeout 8 s, response capped at 4 MB, TLS
+	 * verified, HTTP 200 required. Without a timeout, file_get_contents()
+	 * waits up to PHP's default_socket_timeout (60 s) and would stall the
+	 * whole Security Check.
+	 *
+	 * @return  array|null  decoded feed ('success' true), or null when it could not be fetched or is invalid
+	 */
+	private static function fetchVelFeed(): ?array
+	{
+		$url = 'https://extensions.joomla.org/index.php?option=com_vel&format=json';
+		$cap = 4 * 1048576;
+
+		if (!function_exists('curl_init')) {
+			return null;
+		}
+
+		$body   = '';
+		$tooBig = false;
+		$ch     = curl_init($url);
+
+		curl_setopt_array($ch, [
+			CURLOPT_HTTPGET        => true,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 3,
+			CURLOPT_TIMEOUT        => 8,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_MAXREDIRS      => 2,
+			CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
+			CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+			CURLOPT_SSL_VERIFYPEER => true,
+			CURLOPT_SSL_VERIFYHOST => 2,
+			CURLOPT_USERAGENT      => 'FG-System-Report-VEL-Check',
+			CURLOPT_WRITEFUNCTION  => static function ($handle, $chunk) use (&$body, &$tooBig, $cap) {
+				if (strlen($body) + strlen($chunk) > $cap) {
+					$tooBig = true;
+
+					return 0; // abort the transfer
+				}
+
+				$body .= $chunk;
+
+				return strlen($chunk);
+			},
+		]);
+
+		$ok   = curl_exec($ch);
+		$code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+
+		if ($ok === false || $tooBig || $code !== 200 || $body === '') {
+			return null;
+		}
+
+		$data = json_decode($body, true);
+
+		return is_array($data) && !empty($data['success']) ? $data : null;
 	}
 
 	/**

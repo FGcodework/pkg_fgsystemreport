@@ -28,6 +28,12 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.13]
+
+### Fixed
+- Known vulnerable extensions (Joomla VEL): the feed was read with `file_get_contents()`, which has no explicit timeout (PHP default 60 s, so an unreachable server could stall the whole Security Check) and no size limit. It is now fetched with cURL: connect timeout 3 s, total timeout 8 s, response capped at 4 MB, HTTPS only, TLS verified, HTTP 200 required.
+- An invalid or non-JSON response used to be treated as "no vulnerable extensions found" (OK); it is now reported as "could not check" (info). Matching is unchanged: a name match is still only a possible match to verify manually.
+
 ## [1.13.12]
 
 ### Added
