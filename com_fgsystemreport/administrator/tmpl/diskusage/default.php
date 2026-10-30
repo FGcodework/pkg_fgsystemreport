@@ -49,9 +49,12 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&' . \J
             <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_SCANNING')); ?>" href="<?php echo htmlspecialchars($rescanUrl); ?>">
                 <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_RESCAN'); ?>
             </a>
-            <a class="btn btn-sm btn-outline-secondary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_SENDING')); ?>" href="<?php echo htmlspecialchars('index.php?option=com_fgsystemreport&task=fgsystemreport.sendTestMail&' . \Joomla\CMS\Session\Session::getFormToken() . '=1'); ?>" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_TIP')); ?>">
-                <span class="icon-mail me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_BUTTON'); ?>
-            </a>
+            <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.sendTestMail" class="d-inline m-0">
+                <button type="submit" class="btn btn-sm btn-outline-secondary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_SENDING')); ?>" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_TIP')); ?>">
+                    <span class="icon-mail me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_BUTTON'); ?>
+                </button>
+                <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
+            </form>
         </div>
     </div>
     <div class="card-body">

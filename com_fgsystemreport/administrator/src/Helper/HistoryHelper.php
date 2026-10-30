@@ -275,8 +275,8 @@ class HistoryHelper
 		}
 
 		$rank = ['info' => 0, 'ok' => 0, 'warning' => 1, 'danger' => 2];
-		$cur  = $current->decoded;
-		$prev = $previous->decoded;
+		$cur  = array_values((array) $current->decoded);
+		$prev = array_values((array) $previous->decoded);
 
 		// Identify a check by its stable key when every row of both runs has
 		// one; otherwise (older rows) by its translated label.
@@ -314,7 +314,7 @@ class HistoryHelper
 			$prevMap = [];
 
 			foreach ($cur as $i => $r) {
-				$prevMap[$r[0]] = $prev[$i][1];
+				$prevMap[$r[0]] = $prev[$i][1] ?? '';
 			}
 		}
 
@@ -379,9 +379,8 @@ class HistoryHelper
 		}
 
 		try {
-			Factory::getContainer()->get('DatabaseDriver')
-				->setQuery('DELETE FROM ' . Factory::getContainer()->get('DatabaseDriver')->quoteName(self::TABLE))
-				->execute();
+			$db = Factory::getContainer()->get('DatabaseDriver');
+			$db->setQuery('DELETE FROM ' . $db->quoteName(self::TABLE))->execute();
 		} catch (\Throwable $e) {
 			// ignore
 		}

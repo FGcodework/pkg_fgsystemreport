@@ -7,11 +7,11 @@
         <description>FG System Report - audit and monitoring toolkit (component + plugins)</description>
         <element>pkg_fgsystemreport</element>
         <type>package</type>
-        <version>1.13.20</version>
+        <version>1.13.21</version>
         <client>site</client>
-        <infourl title="FG System Report 1.13.20">https://github.com/FGcodework/pkg_fgsystemreport/releases/tag/v1.13.20</infourl>
+        <infourl title="FG System Report 1.13.21">https://github.com/FGcodework/pkg_fgsystemreport/releases/tag/v1.13.21</infourl>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/FGcodework/pkg_fgsystemreport/releases/download/v1.13.20/pkg_fgsystemreport_v1.13.20.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/FGcodework/pkg_fgsystemreport/releases/download/v1.13.21/pkg_fgsystemreport_v1.13.21.zip</downloadurl>
         </downloads>
         <tags>
             <tag>stable</tag>

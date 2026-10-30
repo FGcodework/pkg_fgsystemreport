@@ -119,11 +119,13 @@ if ($n > 0) {
                 href="index.php?option=com_fgsystemreport&task=fgsystemreport.exportHistoryCsv&days=<?php echo $days; ?>&<?php echo $token; ?>=1">
                 <span class="icon-download me-1" aria-hidden="true"></span>CSV
             </a>
-            <a class="btn btn-sm btn-outline-danger ms-1"
-                href="index.php?option=com_fgsystemreport&task=fgsystemreport.clearHistory&<?php echo $token; ?>=1"
-                onclick="return confirm('<?php echo htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR_CONFIRM'), ENT_QUOTES); ?>');">
-                <span class="icon-trash me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR'); ?>
-            </a>
+            <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.clearHistory" class="d-inline m-0 ms-1"
+                onsubmit="return confirm('<?php echo htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR_CONFIRM'), ENT_QUOTES); ?>');">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <span class="icon-trash me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR'); ?>
+                </button>
+                <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
+            </form>
         </div>
     </div>
     <div class="card-body">

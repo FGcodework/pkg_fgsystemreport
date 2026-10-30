@@ -12,6 +12,7 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Mail\MailerFactoryInterface;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Session\Session;
 
 /**
@@ -451,8 +452,7 @@ final class GrowthAlertHelper
 	public static function renderBanner(): void
 	{
 		$h   = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-		$url = 'index.php?option=com_fgsystemreport&task=fgsystemreport.dismissGrowthAlert&'
-			. Session::getFormToken() . '=1';
+		$url = 'index.php?option=com_fgsystemreport&task=fgsystemreport.dismissGrowthAlert';
 
 		foreach (self::latestAll() as $type => $alert) {
 			$items = $alert->data['items'] ?? [];
@@ -472,7 +472,9 @@ final class GrowthAlertHelper
 			}
 
 			echo '</ul></div>';
-			echo '<a class="btn btn-sm btn-outline-secondary ms-3 text-nowrap" href="' . $h($url) . '">' . $h(Text::_('COM_FGSYSTEMREPORT_GROWTH_DISMISS')) . '</a>';
+			echo '<form method="post" action="' . $h($url) . '" class="m-0 ms-3">'
+				. '<button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">' . $h(Text::_('COM_FGSYSTEMREPORT_GROWTH_DISMISS')) . '</button>'
+				. HTMLHelper::_('form.token') . '</form>';
 			echo '</div>';
 		}
 	}

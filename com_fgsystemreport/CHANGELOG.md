@@ -28,6 +28,25 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.21]
+
+### Changed (from a code review)
+- State-changing actions now use POST with a form token instead of a GET link
+  with the token in the URL: Clear history, Dismiss growth alert, Send test
+  e-mail, Check for updates. Prefetching, link scanners and browser history /
+  access logs can no longer trigger them or carry their token.
+- Send test e-mail is rate limited to once per 30 seconds per session.
+- Security History: more defensive handling of legacy rows without a check key
+  (re-indexed arrays, missing entries), and a redundant database lookup in
+  `clear()` removed.
+- Kept as GET with a token: the CSV / JSON exports and the Disk Usage rescan
+  (read-only; a plain link is how a download works).
+- Not changed: the CSV output-buffer handling (rows are built before streaming
+  and a failure there would not be improved by try/finally), the `pgsql`
+  server-type check (Joomla reports `postgresql` for its PostgreSQL driver) and
+  the clock-skew query (Joomla supports only MySQL/MariaDB/PostgreSQL; an
+  unsupported engine already yields a warning that the check could not run).
+
 ## [1.13.20]
 
 ### Changed (PDF report memory use, from a code review)

@@ -21,8 +21,7 @@ $baseParams = '&include_core_list=' . $includeCoreList . '&hide_official_list=' 
 $coreToggleUrl = 'index.php?option=com_fgsystemreport&view=extensions&include_core_list=' . ($includeCoreList ? 0 : 1);
 $officialToggleUrl = 'index.php?option=com_fgsystemreport&view=extensions&hide_official_list=' . ($hideOfficialList ? 0 : 1);
 $groupToggleUrl = 'index.php?option=com_fgsystemreport&view=extensions&group_by_type=' . ($groupByType ? 0 : 1);
-$checkUrl = 'index.php?option=com_fgsystemreport&task=fgsystemreport.findUpdates' . $baseParams
-    . '&' . Joomla\CMS\Session\Session::getFormToken() . '=1';
+$checkUrl = 'index.php?option=com_fgsystemreport&task=fgsystemreport.findUpdates';
 $csvUrl = 'index.php?option=com_fgsystemreport&task=fgsystemreport.exportCsv' . $baseParams
     . '&' . Joomla\CMS\Session\Session::getFormToken() . '=1';
 
@@ -127,9 +126,12 @@ $renderRow = function ($ext, $index) {
             <a class="btn btn-sm btn-outline-success" href="<?php echo $csvUrl; ?>">
                 <span class="icon-download me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_EXPORT_CSV'); ?>
             </a>
-            <a class="btn btn-sm btn-outline-primary fg-busy" href="<?php echo $checkUrl; ?>" id="jc-check-updates" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_EXT_CHECKING_UPDATES')); ?>">
-                <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_CHECK_UPDATES'); ?>
-            </a>
+            <form method="post" action="<?php echo $checkUrl; ?>" class="d-inline m-0">
+                <button type="submit" class="btn btn-sm btn-outline-primary fg-busy" id="jc-check-updates" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_EXT_CHECKING_UPDATES')); ?>">
+                    <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_EXT_CHECK_UPDATES'); ?>
+                </button>
+                <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
+            </form>
             <a class="btn btn-sm <?php echo $groupByType ? 'btn-secondary' : 'btn-outline-secondary'; ?>" href="<?php echo $groupToggleUrl; ?>">
                 <?php echo Text::_($groupByType ? 'COM_FGSYSTEMREPORT_EXT_FLAT_LIST' : 'COM_FGSYSTEMREPORT_EXT_GROUP_BY_TYPE'); ?>
             </a>

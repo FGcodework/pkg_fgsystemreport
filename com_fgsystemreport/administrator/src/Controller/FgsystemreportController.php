@@ -193,7 +193,7 @@ class FgsystemreportController extends FormController
     public function clearHistory()
     {
         $this->requireAccess('core.admin');
-        Session::checkToken('get') or die(Text::_('JINVALID_TOKEN'));
+        Session::checkToken('post') or die(Text::_('JINVALID_TOKEN'));
         HistoryHelper::clear();
         $app = Factory::getApplication();
         $app->enqueueMessage(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEARED'));
@@ -261,7 +261,7 @@ class FgsystemreportController extends FormController
     public function dismissGrowthAlert()
     {
         $this->requireAccess();
-        Session::checkToken('get') or die(Text::_('JINVALID_TOKEN'));
+        Session::checkToken('post') or die(Text::_('JINVALID_TOKEN'));
         \Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::dismissAll();
         $this->setRedirect(Route::_('index.php?option=com_fgsystemreport&view=diskusage', false));
     }
@@ -272,10 +272,24 @@ class FgsystemreportController extends FormController
     public function sendTestMail()
     {
         $this->requireAccess();
-        Session::checkToken('get') or die(Text::_('JINVALID_TOKEN'));
+        Session::checkToken('post') or die(Text::_('JINVALID_TOKEN'));
+        $app     = Factory::getApplication();
+        $session = $app->getSession();
+
+        // Simple rate limit: one test mail per 30 seconds per session.
+        $last = (int) $session->get('com_fgsystemreport.testmail_at', 0);
+
+        if ($last && (time() - $last) < 30) {
+            $app->enqueueMessage(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_TEST_WAIT', 30 - (time() - $last)), 'warning');
+            $this->setRedirect(Route::_('index.php?option=com_fgsystemreport&view=diskusage', false));
+
+            return;
+        }
+
+        $session->set('com_fgsystemreport.testmail_at', time());
+
         $error = null;
         $ok    = \Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::sendMail(null, $error);
-        $app   = Factory::getApplication();
 
         if ($ok) {
             $app->enqueueMessage(Text::sprintf('COM_FGSYSTEMREPORT_GROWTH_TEST_OK', implode(', ', \Fg\Component\Fgsystemreport\Administrator\Helper\GrowthAlertHelper::recipients())), 'message');
@@ -290,7 +304,7 @@ class FgsystemreportController extends FormController
     {
         $this->requireAccess();
         // CSRF protection
-        Session::checkToken('get') or die(Text::_('JINVALID_TOKEN'));
+        Session::checkToken('post') or die(Text::_('JINVALID_TOKEN'));
         $app = Factory::getApplication();
         // Fetch fresh update information for all extensions (no cache)
         Updater::getInstance()->findUpdates(0, 0);
