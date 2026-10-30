@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.30]
+
+### Changed
+- The exposed-files check (HTTP) also probes `.user.ini` and `php.ini` in the
+  web root; a hit needs a PHP directive in the first bytes of the response, so
+  a custom 404 page is not mistaken for the file.
+- "Send test e-mail" now needs `core.admin` (it sends a message to the
+  configured recipients) and its button is hidden for other users.
+- The "new in list" badge on Disk Usage uses the themed `fgsr-badge-official`
+  class like the other badges instead of `bg-info text-dark`.
+- 2 more tests (32 in total).
+
 ## [1.13.29]
 
 ### Added

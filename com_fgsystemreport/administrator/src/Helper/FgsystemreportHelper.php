@@ -1400,6 +1400,9 @@ class FgsystemreportHelper
 		return $responses;
 	}
 
+	/** A body that looks like a php.ini / .user.ini (a PHP directive on its own line). */
+	private const PHP_INI_SIGNATURE = '/^\s*(\[PHP\]|(memory_limit|upload_max_filesize|post_max_size|display_errors|max_execution_time|max_input_vars|date\.timezone|auto_prepend_file|auto_append_file|open_basedir|error_log|session\.[a-z_]+)\s*=)/mi';
+
 	/**
 	 * Check a short list of commonly-forgotten sensitive paths (.env,
 	 * .git internals, backup/config leftovers, phpinfo scripts...) for
@@ -1458,6 +1461,9 @@ class FgsystemreportHelper
 			'configuration.php.save'  => '/<\?php|class\s+Configuration/i',
 			'phpinfo.php'             => '/phpinfo\(\)|PHP Version|<title>phpinfo/i',
 			'error_log'               => '/PHP (Warning|Notice|Fatal error|Deprecated|Parse error)/i',
+			// PHP configuration files left in the web root (leak limits, paths, settings)
+			'.user.ini'               => self::PHP_INI_SIGNATURE,
+			'php.ini'                 => self::PHP_INI_SIGNATURE,
 		];
 
 		$canaryPath = 'jc-probe-' . bin2hex(random_bytes(8));

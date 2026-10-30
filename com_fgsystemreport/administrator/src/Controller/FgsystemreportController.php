@@ -275,7 +275,8 @@ class FgsystemreportController extends FormController
      */
     public function sendTestMail()
     {
-        $this->requireAccess();
+        // Sends an e-mail to the configured recipients: administrators only
+        $this->requireAccess('core.admin');
         Session::checkToken('post') or die(Text::_('JINVALID_TOKEN'));
         $app     = Factory::getApplication();
         $session = $app->getSession();

@@ -49,12 +49,14 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&' . \J
             <a class="btn btn-sm btn-outline-primary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_SCANNING')); ?>" href="<?php echo htmlspecialchars($rescanUrl); ?>">
                 <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_RESCAN'); ?>
             </a>
+            <?php if (\Joomla\CMS\Factory::getApplication()->getIdentity()->authorise('core.admin', 'com_fgsystemreport')) : ?>
             <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.sendTestMail" class="d-inline m-0">
                 <button type="submit" class="btn btn-sm btn-outline-secondary fg-busy" data-fg-busy-text="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_SENDING')); ?>" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_TIP')); ?>">
                     <span class="icon-mail me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_GROWTH_TEST_BUTTON'); ?>
                 </button>
                 <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
             </form>
+            <?php endif; ?>
         </div>
     </div>
     <div class="card-body">
@@ -100,7 +102,7 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&' . \J
                             <?php if ($comparison !== null) : ?>
                                 <td class="text-end text-nowrap">
                                     <?php if (($comparison['deltas'][$dir] ?? null) === null) : ?>
-                                        <span class="badge bg-info text-dark"><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_NEW_IN_LIST'); ?></span>
+                                        <span class="badge fgsr-badge-official"><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_NEW_IN_LIST'); ?></span>
                                     <?php else : ?>
                                         <?php echo $fmtDelta((int) $comparison['deltas'][$dir]); ?>
                                     <?php endif; ?>
