@@ -28,6 +28,22 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.24]
+
+### Fixed (system plugin, from a code review)
+- Global Configuration changes: `configuration.php` stores real booleans
+  (e.g. `debug = false`) while the form posts "0"/"1", so saving the page with
+  no change could log a bogus "debug: - > 0". Values are now normalised before
+  they are compared.
+- The plugin's own error log (`fgsystemreport_events.log`) is written to the
+  log folder configured in Global Configuration (`log_path`) instead of a
+  hard-coded `administrator/logs`; the History diagnostics read the same file.
+- Uninstall events: the extension name is also taken from the installer's
+  `getManifest()` when the manifest property is not available.
+- Not changed: the claim that `.log` files may be downloadable - Joomla's log
+  folders ship with their own access protection and no secrets are written
+  there.
+
 ## [1.13.23]
 
 ### Fixed

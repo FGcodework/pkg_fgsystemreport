@@ -49,14 +49,41 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
         return array_values($event->getArguments());
     }
 
+    /**
+     * Comparable string for a configuration value: configuration.php holds
+     * real booleans (false) while the form posts "0" / "1", so both must
+     * give the same string or an unchanged setting would be logged.
+     */
+    private static function normalise($v): string
+    {
+        if (is_bool($v)) {
+            return $v ? '1' : '0';
+        }
+
+        if (!is_scalar($v)) {
+            return '';
+        }
+
+        $s = trim((string) $v);
+
+        return match (strtolower($s)) {
+            'true'  => '1',
+            'false' => '0',
+            default => $s,
+        };
+    }
+
     private static function ready(): bool
     {
         if (class_exists(ChangeLogHelper::class)) {
             return true;
         }
 
+        // Honour the configured log folder (Global Configuration > log_path)
+        $dir = rtrim((string) Factory::getApplication()->get('log_path', ''), '/\\') ?: JPATH_ADMINISTRATOR . '/logs';
+
         @file_put_contents(
-            JPATH_ADMINISTRATOR . '/logs/fgsystemreport_events.log',
+            $dir . '/fgsystemreport_events.log',
             gmdate('Y-m-d H:i:s') . ' ready: component helper class not found (is com_fgsystemreport installed?)' . "\n",
             FILE_APPEND
         );
@@ -158,9 +185,19 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             $name = '';
             $kind = '';
 
-            if (is_object($installer) && isset($installer->manifest) && $installer->manifest instanceof \SimpleXMLElement) {
-                $name = Text::_((string) $installer->manifest->name);
-                $kind = (string) $installer->manifest['type'];
+            $manifest = is_object($installer) ? ($installer->manifest ?? null) : null;
+
+            if (!$manifest instanceof \SimpleXMLElement && is_object($installer) && method_exists($installer, 'getManifest')) {
+                try {
+                    $manifest = $installer->getManifest();
+                } catch (\Throwable $e) {
+                    $manifest = null;
+                }
+            }
+
+            if ($manifest instanceof \SimpleXMLElement) {
+                $name = Text::_((string) $manifest->name);
+                $kind = (string) $manifest['type'];
             }
 
             if ($name === '') {
@@ -285,8 +322,8 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
                     continue;
                 }
 
-                $old = (string) $app->get($key, '');
-                $val = is_scalar($new[$key]) ? (string) $new[$key] : '';
+                $old = self::normalise($app->get($key, ''));
+                $val = self::normalise($new[$key]);
 
                 if ($old !== $val) {
                     $changes[] = $key . ': ' . ($old === '' ? '-' : $old) . ' > ' . ($val === '' ? '-' : $val);

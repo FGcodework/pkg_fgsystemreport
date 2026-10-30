@@ -141,7 +141,7 @@ final class ChangeLogHelper
 		}
 
 		try {
-			$f = JPATH_ADMINISTRATOR . '/logs/fgsystemreport_events.log';
+			$f = self::logDir() . '/fgsystemreport_events.log';
 
 			if (is_file($f)) {
 				$lines = array_filter(array_map('trim', (array) file($f)));
@@ -154,11 +154,25 @@ final class ChangeLogHelper
 		return ['plugin' => $plugin, 'table' => self::ensureTable(), 'error' => $error];
 	}
 
+	/** Joomla's configured log folder (Global Configuration), else administrator/logs. */
+	private static function logDir(): string
+	{
+		$dir = '';
+
+		try {
+			$dir = rtrim((string) Factory::getApplication()->get('log_path', ''), '/\\');
+		} catch (\Throwable $e) {
+			// fall back below
+		}
+
+		return $dir !== '' ? $dir : JPATH_ADMINISTRATOR . '/logs';
+	}
+
 	/** Remember why recording failed (plugin handlers swallow errors on purpose). */
 	public static function logError(string $where, \Throwable $e): void
 	{
 		try {
-			$dir = JPATH_ADMINISTRATOR . '/logs';
+			$dir = self::logDir();
 
 			if (is_dir($dir) && is_writable($dir)) {
 				@file_put_contents(
