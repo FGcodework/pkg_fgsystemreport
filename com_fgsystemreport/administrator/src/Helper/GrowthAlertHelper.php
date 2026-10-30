@@ -75,30 +75,47 @@ final class GrowthAlertHelper
 	}
 
 	/**
-	 * Pure threshold logic: folders present in both snapshots whose growth
-	 * crosses the configured limits. Largest growth first.
+	 * Pure threshold logic: folders/tables whose growth crosses the configured
+	 * limits. Largest growth first.
 	 *
-	 * @param   array  $cur       relative path => bytes (current scan)
-	 * @param   array  $prev      relative path => bytes (previous scan)
-	 * @param   int    $mb        absolute limit in MB (0 = off)
-	 * @param   int    $pct       relative limit in % (0 = off)
+	 * Items missing from the previous snapshot are "new". They are judged only
+	 * by the absolute limit, against $newFrom as their previous size: 0 when
+	 * the snapshot lists everything (database tables), or the smallest listed
+	 * size for a top-N list (a folder not in it was at most that big, so the
+	 * growth is a lower bound). null ignores new items.
 	 *
-	 * @return  array  list of ['path','from','to','delta','pct']
+	 * @param   array     $cur      relative path => bytes (current scan)
+	 * @param   array     $prev     relative path => bytes (previous scan)
+	 * @param   int       $mb       absolute limit in MB (0 = off)
+	 * @param   int       $pct      relative limit in % (0 = off)
+	 * @param   int|null  $newFrom  assumed previous size of new items, null = ignore them
+	 *
+	 * @return  array  list of ['path','from','to','delta','pct'] (+ 'new' => true)
 	 */
-	public static function detect(array $cur, array $prev, int $mb, int $pct): array
+	public static function detect(array $cur, array $prev, int $mb, int $pct, ?int $newFrom = null): array
 	{
 		$out = [];
 
 		foreach ($cur as $path => $bytes) {
-			if (!array_key_exists($path, $prev)) {
+			$isNew = !array_key_exists($path, $prev);
+
+			if ($isNew && $newFrom === null) {
 				continue;
 			}
 
-			$from  = (int) $prev[$path];
+			$from  = $isNew ? $newFrom : (int) $prev[$path];
 			$to    = (int) $bytes;
 			$delta = $to - $from;
 
 			if ($delta <= 0) {
+				continue;
+			}
+
+			if ($isNew) {
+				if ($mb > 0 && $delta >= $mb * self::MB) {
+					$out[] = ['path' => (string) $path, 'from' => $from, 'to' => $to, 'delta' => $delta, 'pct' => 0, 'new' => true];
+				}
+
 				continue;
 			}
 
@@ -114,6 +131,27 @@ final class GrowthAlertHelper
 		usort($out, static fn ($a, $b) => $b['delta'] <=> $a['delta']);
 
 		return $out;
+	}
+
+	/**
+	 * Growth of the overall size (site or database) between two snapshots,
+	 * judged by the same limits. Catches growth spread over many small items
+	 * that no single folder/table limit would report.
+	 *
+	 * @return  array  [] or one item ['path' => '*', ..., 'total' => true]
+	 */
+	public static function detectTotal(int $cur, int $prev, int $mb, int $pct): array
+	{
+		$delta = $cur - $prev;
+
+		if ($prev <= 0 || $delta <= 0) {
+			return [];
+		}
+
+		$p   = $delta / $prev * 100;
+		$hit = ($mb > 0 && $delta >= $mb * self::MB) || ($pct > 0 && $p >= $pct && $delta >= self::MIN_PCT_B);
+
+		return $hit ? [['path' => '*', 'from' => $prev, 'to' => $cur, 'delta' => $delta, 'pct' => round($p, 1), 'total' => true]] : [];
 	}
 
 	/**
@@ -137,7 +175,13 @@ final class GrowthAlertHelper
 				return;
 			}
 
-			$items = self::detect((array) $cur->dirs, (array) $prev->dirs, $cfg['mb'], $cfg['pct']);
+			// The disk snapshot is a top-N list: a folder missing from the previous
+			// one was at most as big as the smallest folder that was listed.
+			$prevDirs = (array) $prev->dirs;
+			$items    = array_merge(
+				self::detectTotal((int) $cur->total, (int) $prev->total, $cfg['mb'], $cfg['pct']),
+				self::detect((array) $cur->dirs, $prevDirs, $cfg['mb'], $cfg['pct'], $prevDirs ? (int) min($prevDirs) : 0)
+			);
 			self::raise('disk', $items, $prev, $cur, $source);
 		} catch (\Throwable $e) {
 			// Alerting must never break a scan.
@@ -162,7 +206,10 @@ final class GrowthAlertHelper
 				return;
 			}
 
-			$items = self::detect((array) $cur->tables, (array) $prev->tables, $cfg['db_mb'], $cfg['db_pct']);
+			$items = array_merge(
+				self::detectTotal((int) $cur->total, (int) $prev->total, $cfg['db_mb'], $cfg['db_pct']),
+				self::detect((array) $cur->tables, (array) $prev->tables, $cfg['db_mb'], $cfg['db_pct'], 0)
+			);
 			self::raise('db', $items, $prev, $cur, $source);
 		} catch (\Throwable $e) {
 			// Alerting must never break the diagnostics.
@@ -275,19 +322,28 @@ final class GrowthAlertHelper
 		return strpos($path, $root) === 0 ? (substr($path, strlen($root)) ?: '/') : $path;
 	}
 
+	/** Plain-text label and detail of one alert item (folder, table, new item or the total). */
+	private static function describe(array $i): array
+	{
+		$size  = static fn ($b) => FgsystemreportHelper::formatFileSize($b);
+		$label = !empty($i['total']) ? Text::_('COM_FGSYSTEMREPORT_GROWTH_TOTAL') : (string) $i['path'];
+
+		if (!empty($i['new'])) {
+			$detail = '+' . $size($i['delta']) . ' (' . Text::_('COM_FGSYSTEMREPORT_GROWTH_NEW_ITEM') . ', ' . $size($i['to']) . ')';
+		} else {
+			$detail = '+' . $size($i['delta']) . ' (' . $size($i['from']) . ' -> ' . $size($i['to']) . ', +' . $i['pct'] . '%)';
+		}
+
+		return [$label, $detail];
+	}
+
 	private static function lines(array $items, int $max = 15): string
 	{
 		$out = [];
 
 		foreach (array_slice($items, 0, $max) as $i) {
-			$out[] = sprintf(
-				'%s: +%s (%s -> %s, +%s%%)',
-				$i['path'],
-				FgsystemreportHelper::formatFileSize($i['delta']),
-				FgsystemreportHelper::formatFileSize($i['from']),
-				FgsystemreportHelper::formatFileSize($i['to']),
-				$i['pct']
-			);
+			[$label, $detail] = self::describe($i);
+			$out[]            = $label . ': ' . $detail;
 		}
 
 		return implode("\n", $out);
@@ -407,9 +463,8 @@ final class GrowthAlertHelper
 			echo '<ul class="mb-0 mt-1">';
 
 			foreach (array_slice($items, 0, 5) as $i) {
-				echo '<li><code>' . $h($i['path']) . '</code> +' . $h(FgsystemreportHelper::formatFileSize($i['delta']))
-					. ' (' . $h(FgsystemreportHelper::formatFileSize($i['from'])) . ' &rarr; ' . $h(FgsystemreportHelper::formatFileSize($i['to']))
-					. ', +' . $h($i['pct']) . '%)</li>';
+				[$label, $detail] = self::describe($i);
+				echo '<li>' . (!empty($i['total']) ? '<strong>' . $h($label) . '</strong>' : '<code>' . $h($label) . '</code>') . ' ' . $h($detail) . '</li>';
 			}
 
 			if (count($items) > 5) {

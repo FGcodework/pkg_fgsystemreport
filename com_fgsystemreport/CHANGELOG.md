@@ -28,6 +28,12 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.8]
+
+### Changed
+- Growth alerts now also watch the **total size** (site for Disk Usage, database for the Database page) between two snapshots, using the same limits, so growth spread over many small items is caught.
+- Growth alerts now report **new** folders/tables that were not in the previous snapshot. They are judged by the absolute limit only; for the Disk Usage top-N list the previous size is taken as the smallest folder that was listed, so the shown growth is a lower bound. For database tables (listed completely) the previous size is 0.
+
 ## [1.13.7]
 
 ### Fixed
