@@ -48,7 +48,7 @@ The plugins are enabled automatically on install (and on the first update that b
 
 After installing, create a task *"FG System Report: Security Check Notification"* under *System → Scheduled Tasks* (e.g. daily) to get history and notifications. Without a working cron, run the Security Check from the admin or from the command line.
 
-Requires Joomla 5.x or 6.x and PHP 8.1+. Nothing needs to be configured for the checks themselves; notification recipients are set on the scheduled task (default: all active Super Users).
+Requires Joomla 5.x or 6.x and PHP 8.1+. Developed and tested on MySQL/MariaDB; PostgreSQL is only partly supported (the Database diagnostics page is MySQL/MariaDB only, the rest has not been tested end to end). Nothing needs to be configured for the checks themselves; notification recipients are set on the scheduled task (default: all active Super Users).
 
 ### Command line / cron
 

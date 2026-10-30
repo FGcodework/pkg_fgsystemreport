@@ -75,7 +75,7 @@ final class DbDiagnosticsHelper
 	{
 		$db = Factory::getContainer()->get('DatabaseDriver');
 
-		if (stripos($db->getServerType(), 'mysql') === false) {
+		if (stripos($db->getServerType(), 'mysql') === false && stripos($db->getServerType(), 'maria') === false) {
 			return [
 				'time'  => time(),
 				'steps' => [self::step('server', 'info', $db->getServerType() . ' ' . $db->getVersion(), [], 'COM_FGSYSTEMREPORT_DB_UNSUPPORTED')],

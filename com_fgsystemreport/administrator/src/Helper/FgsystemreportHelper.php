@@ -963,16 +963,31 @@ class FgsystemreportHelper
 		// time() and MySQL's UTC_TIMESTAMP() are both UTC-based, so this
 		// comparison is fair regardless of either side's configured
 		// timezone.
+		$isMysqlFamily = stripos((string) $dbType, 'mysql') !== false || stripos((string) $dbType, 'maria') !== false;
+
 		try {
-			$dbUtcTimestamp = (int) $db->setQuery('SELECT UNIX_TIMESTAMP(UTC_TIMESTAMP()) AS ts')->loadResult();
+			// MySQL/MariaDB: UTC_TIMESTAMP(); PostgreSQL: epoch of now() (always UTC based)
+			$clockSql       = $isMysqlFamily ? 'SELECT UNIX_TIMESTAMP(UTC_TIMESTAMP()) AS ts' : 'SELECT CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT) AS ts';
+			$dbUtcTimestamp = (int) $db->setQuery($clockSql)->loadResult();
 			$skewSeconds    = abs(time() - $dbUtcTimestamp);
 		} catch (\Throwable $e) {
 			$skewSeconds = null;
 		}
 
-		$phpTz    = date_default_timezone_get();
-		$dbTzRow  = $db->setQuery("SHOW VARIABLES LIKE 'time_zone'")->loadObject();
-		$dbTz     = $dbTzRow->Value ?? '?';
+		$phpTz = date_default_timezone_get();
+		$dbTz  = '?';
+
+		try {
+			if ($isMysqlFamily) {
+				$dbTzRow = $db->setQuery("SHOW VARIABLES LIKE 'time_zone'")->loadObject();
+				$dbTz    = $dbTzRow->Value ?? '?';
+			} else {
+				$dbTz = (string) $db->setQuery('SHOW TIME ZONE')->loadResult() ?: '?';
+			}
+		} catch (\Throwable $e) {
+			// leave '?'
+		}
+
 		$tzNote   = Text::sprintf('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW_TZ', $phpTz, $dbTz);
 
 		// A skew that lands within a few seconds of a whole hour (3600,
@@ -1080,6 +1095,10 @@ class FgsystemreportHelper
 		// Without STRICT_TRANS_TABLES/STRICT_ALL_TABLES, MySQL silently
 		// truncates or coerces invalid data instead of raising an error -
 		// a subtle, hard-to-trace source of data integrity bugs.
+		if (!$isMysqlFamily) {
+			// sql_mode is a MySQL/MariaDB concept: nothing to check on other servers
+			$sqlMode = '';
+		} else {
 		try {
 			$sqlModeRow = $db->setQuery('SELECT @@SESSION.sql_mode AS mode')->loadResult();
 			$sqlMode    = (string) $sqlModeRow;
@@ -1089,8 +1108,11 @@ class FgsystemreportHelper
 			$sqlMode   = null;
 			$hasStrict = null;
 		}
+		}
 
-		if ($sqlMode === null) {
+		if (!$isMysqlFamily) {
+			// no sql_mode check outside MySQL/MariaDB
+		} elseif ($sqlMode === null) {
 			$add('COM_FGSYSTEMREPORT_SEC_SQL_MODE', 'info', Text::_('JNONE'),
 				Text::_('COM_FGSYSTEMREPORT_SEC_SQL_MODE_CHECK_FAILED'));
 		} elseif (!$hasStrict) {

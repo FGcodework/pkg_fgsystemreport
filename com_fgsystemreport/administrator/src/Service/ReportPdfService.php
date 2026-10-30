@@ -59,7 +59,11 @@ class ReportPdfService
         }
 
         if ($showCategories) {
-            $db->setQuery('SELECT COUNT(*) FROM #__categories WHERE extension = "com_content" AND published = 1');
+            $db->setQuery(
+                $db->getQuery(true)->select('COUNT(*)')->from($db->quoteName('#__categories'))
+                    ->where($db->quoteName('extension') . ' = ' . $db->quote('com_content'))
+                    ->where($db->quoteName('published') . ' = 1')
+            );
             $counts[Text::_('COM_FGSYSTEMREPORT_PDF_STAT_CATEGORIES')] = $db->loadResult();
         }
 
@@ -96,7 +100,7 @@ class ReportPdfService
             $query = $db->getQuery(true)
                 ->select('COUNT(*)')
                 ->from($db->quoteName('#__extensions'))
-                ->where('name IS NOT NULL AND name != ""');
+                ->where($db->quoteName('name') . ' IS NOT NULL AND ' . $db->quoteName('name') . ' != ' . $db->quote(''));
 
             if ($includeCore != 1) {
                 $query->where($db->quoteName('locked') . ' = 0');

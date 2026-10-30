@@ -100,7 +100,7 @@ class FgsystemreportModel extends AdminModel
         $query = $db->getQuery(true)
             ->select('COUNT(*)')
             ->from($db->quoteName('#__users'))
-            ->where('lastvisitDate >= NOW() - INTERVAL 30 DAY');
+            ->where($db->quoteName('lastvisitDate') . ' >= ' . $db->quote(Factory::getDate('-30 days')->toSql()));
         $db->setQuery($query);
         $data['active_users'] = $db->loadResult();
 

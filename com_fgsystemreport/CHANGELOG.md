@@ -28,6 +28,17 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.14]
+
+### Fixed
+- PDF report: raw SQL used double-quoted string literals (`extension = "com_content"`, `name != ""`), which PostgreSQL reads as identifiers and MySQL with `ANSI_QUOTES` rejects. Both queries are now built with the query builder and `quote()`/`quoteName()`.
+- Dashboard/model: the "active users (30 days)" query used the MySQL-only `NOW() - INTERVAL 30 DAY`; it now compares with a date computed in PHP.
+- Security Check on PostgreSQL: the clock-skew check no longer runs MySQL-only statements outside a `try` block (they aborted the whole check); it uses `EXTRACT(EPOCH FROM NOW())` and `SHOW TIME ZONE` there, and the MySQL `sql_mode` check is skipped on non-MySQL servers.
+- Database page: MariaDB reporting itself as `mariadb` is no longer treated as an unsupported server.
+
+### Notes
+- Database support: the component is developed and tested on MySQL/MariaDB. The helper tables are created on PostgreSQL as well, and the issues above were fixed, but PostgreSQL has not been tested end to end, and the detailed Database diagnostics page is MySQL/MariaDB only.
+
 ## [1.13.13]
 
 ### Fixed
