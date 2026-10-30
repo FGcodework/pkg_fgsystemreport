@@ -7,7 +7,7 @@
     <author>Fero</author>
     <authorEmail></authorEmail>
     <authorUrl></authorUrl>
-    <version>1.13.11</version>
+    <version>1.13.12</version>
     <description>FG System Report - audit and monitoring toolkit for Joomla 6, maintained by Fero. Originally forked from "JC System Report" by Abdulgani (https://www.joomconsultant.com/), extensively rewritten and rebranded since. Dashboard, Installed Extensions, Security Check (with a site health score, a history/trend page and scheduled email notifications via the companion plg_task_fgsystemreport plugin), Disk Usage (adapted from Fero's own mod_jm_treesize module), Icon Classes reference, PDF reports, CSV/JSON export, and Slovak and German localisation.</description>
     <namespace path="src">Fg\Component\Fgsystemreport</namespace>
 

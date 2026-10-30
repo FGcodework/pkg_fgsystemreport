@@ -454,6 +454,20 @@ class FgsystemreportHelper
 			} else {
 				$add('COM_FGSYSTEMREPORT_SEC_SSL_CERT', 'ok', $certValue, $certNote);
 			}
+
+			// 6c) The expiry check above reads the certificate without
+			// validating it, so trust (chain, host name) gets its own check.
+			$trustError = self::checkSslTrust();
+
+			if ($trustError === null) {
+				$add('COM_FGSYSTEMREPORT_SEC_SSL_TRUST', 'info', Text::_('COM_FGSYSTEMREPORT_SEC_SSL_CERT_UNKNOWN'),
+					Text::_('COM_FGSYSTEMREPORT_SEC_SSL_CERT_CHECK_FAILED'));
+			} elseif ($trustError === '') {
+				$add('COM_FGSYSTEMREPORT_SEC_SSL_TRUST', 'ok', Text::_('JYES'), '');
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_SSL_TRUST', 'warning', Text::_('JNO'),
+					Text::_('COM_FGSYSTEMREPORT_SEC_SSL_TRUST_FAILED') . ' ' . $trustError);
+			}
 		}
 
 		// 7) .htaccess present
@@ -1567,6 +1581,67 @@ class FgsystemreportHelper
 		$result->issuer   = $cert['issuer']['CN'] ?? $cert['issuer']['O'] ?? '';
 
 		return $result;
+	}
+
+	/**
+	 * Validate the TLS certificate of the site's own domain the way a browser
+	 * would: trusted chain and matching host name (PHP's CA bundle).
+	 *
+	 * @return  string|null  '' = valid; a short reason when validation fails;
+	 *                       null when the host could not be reached at all
+	 */
+	public static function checkSslTrust(): ?string
+	{
+		$host = parse_url(Uri::root(), PHP_URL_HOST);
+
+		if (empty($host)) {
+			return null;
+		}
+
+		$context = stream_context_create([
+			'ssl' => [
+				'verify_peer'      => true,
+				'verify_peer_name' => true,
+				'peer_name'        => $host,
+			],
+		]);
+
+		// PHP reports the OpenSSL reason only as warnings: collect them
+		$warnings = [];
+		set_error_handler(static function ($no, $msg) use (&$warnings) {
+			$warnings[] = (string) $msg;
+
+			return true;
+		});
+
+		try {
+			$client = stream_socket_client('ssl://' . $host . ':443', $errno, $errstr, 5, STREAM_CLIENT_CONNECT, $context);
+		} finally {
+			restore_error_handler();
+		}
+
+		if ($client) {
+			fclose($client);
+
+			return '';
+		}
+
+		// A socket-level error (refused, DNS, timeout) has an errno: not a
+		// trust problem. A failed TLS handshake has errno 0.
+		if ((int) $errno !== 0) {
+			return null;
+		}
+
+		$reason = '';
+
+		foreach ($warnings as $w) {
+			if (preg_match('/OpenSSL Error messages:\s*(.+)$/s', $w, $m) || preg_match('/(certificate verify failed|did not match|self[- ]signed)[^\n]*/i', $w, $m)) {
+				$reason = trim((string) preg_replace('/\s+/', ' ', $m[1] ?? $m[0]));
+				break;
+			}
+		}
+
+		return $reason !== '' ? mb_substr($reason, 0, 200) : 'certificate verification failed';
 	}
 
 	/**

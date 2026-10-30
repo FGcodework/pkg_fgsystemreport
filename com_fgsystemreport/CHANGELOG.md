@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.12]
+
+### Added
+- New Security Check "SSL certificate trusted": validates the certificate of the site's own domain the way a browser does (trusted chain, host name). The existing "SSL certificate expiry" check deliberately reads the certificate without validating it, so it only tells you about expiry; an untrusted, self-signed or mismatched certificate is now reported separately as a warning with the OpenSSL reason. A refused or unreachable port 443 is reported as inconclusive, not as a trust failure.
+
+### Changed
+- HSTS check: certificate verification follows the new "Verify TLS certificate in exposure checks" option (default off, as before).
+
 ## [1.13.11]
 
 ### Changed

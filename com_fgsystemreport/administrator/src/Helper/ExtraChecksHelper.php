@@ -166,8 +166,16 @@ final class ExtraChecksHelper
 			return null;
 		}
 
-		$value = '';
-		$ch    = curl_init($root);
+		$value  = '';
+		$verify = false;
+
+		try {
+			$verify = (int) \Joomla\CMS\Component\ComponentHelper::getParams('com_fgsystemreport')->get('probe_verify_tls', 0) === 1;
+		} catch (\Throwable $e) {
+			// default: do not verify (only a header is read from this very site)
+		}
+
+		$ch = curl_init($root);
 
 		curl_setopt_array($ch, [
 			CURLOPT_NOBODY         => true,
@@ -176,8 +184,8 @@ final class ExtraChecksHelper
 			CURLOPT_MAXREDIRS      => 3,
 			CURLOPT_TIMEOUT        => 6,
 			CURLOPT_CONNECTTIMEOUT => 4,
-			CURLOPT_SSL_VERIFYPEER => false,
-			CURLOPT_SSL_VERIFYHOST => 0,
+			CURLOPT_SSL_VERIFYPEER => $verify,
+			CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
 			CURLOPT_USERAGENT      => 'FG System Report',
 			CURLOPT_HEADERFUNCTION => static function ($ch, $line) use (&$value) {
 				if (stripos($line, 'strict-transport-security:') === 0) {
