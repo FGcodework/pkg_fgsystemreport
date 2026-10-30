@@ -43,15 +43,24 @@ final class AcceptedRiskHelper
 			if (stripos($db->getServerType(), 'postgre') !== false) {
 				$sql = 'CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::TABLE) . ' ('
 					. '"check_key" VARCHAR(120) NOT NULL PRIMARY KEY, "note" VARCHAR(255) NOT NULL DEFAULT \'\', '
-					. '"user_name" VARCHAR(150) NOT NULL DEFAULT \'\', "created_at" TIMESTAMP NOT NULL)';
+					. '"user_name" VARCHAR(150) NOT NULL DEFAULT \'\', "created_at" TIMESTAMP NOT NULL, "expires_at" TIMESTAMP NULL)';
 			} else {
 				$sql = 'CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::TABLE) . ' ('
 					. '`check_key` VARCHAR(120) NOT NULL, `note` VARCHAR(255) NOT NULL DEFAULT \'\', '
-					. '`user_name` VARCHAR(150) NOT NULL DEFAULT \'\', `created_at` DATETIME NOT NULL, '
+					. '`user_name` VARCHAR(150) NOT NULL DEFAULT \'\', `created_at` DATETIME NOT NULL, `expires_at` DATETIME NULL DEFAULT NULL, '
 					. 'PRIMARY KEY (`check_key`)) DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_unicode_ci';
 			}
 
 			$db->setQuery($sql)->execute();
+
+			// Tables created before 1.13.29 have no expires_at column
+			try {
+				$db->setQuery('SELECT ' . $db->quoteName('expires_at') . ' FROM ' . $db->quoteName(self::TABLE), 0, 1)->loadResult();
+			} catch (\Throwable $e) {
+				$db->setQuery('ALTER TABLE ' . $db->quoteName(self::TABLE) . ' ADD COLUMN ' . $db->quoteName('expires_at')
+					. (stripos($db->getServerType(), 'postgre') !== false ? ' TIMESTAMP NULL' : ' DATETIME NULL DEFAULT NULL'))->execute();
+			}
+
 			self::$tableReady = true;
 		} catch (\Throwable $e) {
 			self::$tableReady = false;
@@ -60,7 +69,7 @@ final class AcceptedRiskHelper
 		return self::$tableReady;
 	}
 
-	/** @return array<string,object> check_key => row (note, user_name, created_at) */
+	/** @return array<string,object> check_key => row (note, user_name, created_at, expires_at) */
 	public static function all(): array
 	{
 		if (self::$cache !== null) {
@@ -76,7 +85,7 @@ final class AcceptedRiskHelper
 		try {
 			$db   = Factory::getContainer()->get('DatabaseDriver');
 			$rows = (array) $db->setQuery(
-				$db->getQuery(true)->select(['check_key', 'note', 'user_name', 'created_at'])->from($db->quoteName(self::TABLE))
+				$db->getQuery(true)->select(['check_key', 'note', 'user_name', 'created_at', 'expires_at'])->from($db->quoteName(self::TABLE))
 			)->loadObjectList();
 
 			foreach ($rows as $r) {
@@ -94,7 +103,12 @@ final class AcceptedRiskHelper
 		return (bool) preg_match('/^COM_FGSYSTEMREPORT_SEC_[A-Z0-9_]{1,80}$/', $key);
 	}
 
-	public static function accept(string $key, string $note): bool
+	/**
+	 * @param   string    $key   Check key
+	 * @param   string    $note  Why it is acceptable
+	 * @param   int|null  $days  Valid for this many days; null / 0 = no expiry
+	 */
+	public static function accept(string $key, string $note, ?int $days = null): bool
 	{
 		if (!self::isValidKey($key) || !self::ensureTable()) {
 			return false;
@@ -109,6 +123,7 @@ final class AcceptedRiskHelper
 				'note'       => mb_substr(trim($note), 0, 255),
 				'user_name'  => mb_substr($user, 0, 150),
 				'created_at' => Factory::getDate()->toSql(),
+				'expires_at' => $days !== null && $days > 0 ? Factory::getDate('+' . min($days, 3650) . ' days')->toSql() : null,
 			];
 
 			// Replace the previous acceptance atomically: if the insert fails
@@ -174,14 +189,29 @@ final class AcceptedRiskHelper
 				continue;
 			}
 
-			$a              = $accepted[$key];
+			$a = $accepted[$key];
+
+			// Expired acceptance: the finding counts again; it can be re-accepted
+			$expiresAt = !empty($a->expires_at) ? (string) $a->expires_at : '';
+
+			if ($expiresAt !== '' && strtotime($expiresAt . ' UTC') < time()) {
+				$c->accept_expired = true;
+				$c->note           = Text::sprintf('COM_FGSYSTEMREPORT_ACCEPTED_EXPIRED_NOTE', substr($expiresAt, 0, 10))
+					. ($c->note !== '' ? ' ' . $c->note : '');
+
+				continue;
+			}
+
 			$c->orig_status = $c->status;
 			$c->status      = 'info';
 			$c->accepted    = true;
 			$c->accept_note = (string) $a->note;
 			$c->accept_user = (string) $a->user_name;
 			$c->note        = Text::sprintf('COM_FGSYSTEMREPORT_ACCEPTED_NOTE', Text::_('COM_FGSYSTEMREPORT_SEC_STATUS_' . strtoupper((string) $c->orig_status)))
-				. ($a->note !== '' ? ' ' . $a->note : '') . ($c->note !== '' ? ' | ' . $c->note : '');
+				. ($a->note !== '' ? ' ' . $a->note : '')
+				. ($expiresAt !== '' ? ' ' . Text::sprintf('COM_FGSYSTEMREPORT_ACCEPTED_UNTIL', substr($expiresAt, 0, 10)) : '')
+				. ($c->note !== '' ? ' | ' . $c->note : '');
+			$c->accept_until = $expiresAt;
 		}
 
 		return $checks;

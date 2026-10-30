@@ -28,6 +28,21 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.29]
+
+### Added
+- **Expiry of accepted risks.** When accepting a finding you choose how long
+  the acceptance is valid: 30 / 90 (default) / 180 / 365 days or no expiry.
+  The note shows "Valid until <date>". When it expires the finding counts
+  again (score, history, report, CLI) and the scheduled notification treats it
+  as newly worsened; the Security page marks it "Acceptance expired" and
+  offers to accept it again. Existing acceptances have no expiry and keep
+  working unchanged.
+- New column `expires_at` in `#__fgsystemreport_accepted`; it is added
+  automatically to existing tables the first time the table is used.
+- 6 new language keys (en-GB, sk-SK, de-DE; 599 keys each) and 3 more tests
+  (30 in total).
+
 ## [1.13.28]
 
 ### Changed

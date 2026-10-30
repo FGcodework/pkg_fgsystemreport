@@ -86,6 +86,8 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                         <span class="badge <?php echo $cls; ?>"><?php echo Text::_($key); ?></span>
                         <?php if (!empty($check->accepted)) : ?>
                             <br><span class="badge fgsr-badge-official mt-1"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_BADGE'); ?></span>
+                        <?php elseif (!empty($check->accept_expired)) : ?>
+                            <br><span class="badge bg-warning text-dark mt-1"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_EXPIRED_BADGE'); ?></span>
                         <?php endif; ?>
                     </td>
                     <td><?php echo htmlspecialchars($check->value); ?></td>
@@ -104,6 +106,12 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                                     <input type="hidden" name="check_key" value="<?php echo $this->escape($check->key); ?>">
                                     <?php echo HTMLHelper::_('form.token'); ?>
                                     <input type="text" name="note" maxlength="200" class="form-control form-control-sm" placeholder="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_ACCEPTED_NOTE_PLACEHOLDER')); ?>">
+                                    <select name="expire_days" class="form-select form-select-sm w-auto" aria-label="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_ACCEPTED_EXPIRE_LABEL')); ?>" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_ACCEPTED_EXPIRE_LABEL')); ?>">
+                                        <?php foreach ([30, 90, 180, 365] as $d) : ?>
+                                            <option value="<?php echo $d; ?>"<?php echo $d === 90 ? ' selected' : ''; ?>><?php echo Text::sprintf('COM_FGSYSTEMREPORT_ACCEPTED_DAYS', $d); ?></option>
+                                        <?php endforeach; ?>
+                                        <option value="0"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_NO_EXPIRY'); ?></option>
+                                    </select>
                                     <button type="submit" class="btn btn-sm btn-outline-primary"><?php echo Text::_('COM_FGSYSTEMREPORT_ACCEPTED_SAVE'); ?></button>
                                 </form>
                             </details>

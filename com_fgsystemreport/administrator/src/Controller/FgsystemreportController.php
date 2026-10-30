@@ -210,7 +210,11 @@ class FgsystemreportController extends FormController
         $this->requireAccess('core.admin');
         Session::checkToken() or die(Text::_('JINVALID_TOKEN'));
         $input = Factory::getApplication()->getInput();
-        $ok    = AcceptedRiskHelper::accept((string) $input->post->getString('check_key', ''), (string) $input->post->getString('note', ''));
+        $ok    = AcceptedRiskHelper::accept(
+            (string) $input->post->getString('check_key', ''),
+            (string) $input->post->getString('note', ''),
+            max(0, min(3650, $input->post->getInt('expire_days', 0)))
+        );
         $app   = Factory::getApplication();
         $app->enqueueMessage(Text::_($ok ? 'COM_FGSYSTEMREPORT_ACCEPTED_SAVED' : 'COM_FGSYSTEMREPORT_ACCEPTED_FAILED'), $ok ? 'message' : 'error');
         $app->redirect(Route::_('index.php?option=com_fgsystemreport&view=security', false));
