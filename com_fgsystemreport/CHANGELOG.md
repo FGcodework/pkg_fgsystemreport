@@ -28,6 +28,19 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.22]
+
+### Changed (CLI command and quick icon, from a code review)
+- `fgsystemreport:check --url` now rejects anything that is not a full
+  http:// or https:// address with a clear error (exit code 3) instead of
+  silently ignoring it; `PHP_SELF` is set as well, so the site root also
+  resolves under CGI-style setups (console plugin 1.0.3).
+- Quick icon: an unparsable `run_at` value no longer produces a bogus
+  "outdated for N days" label (quickicon plugin 1.0.4).
+- Not changed: the JSON export properties (every check is built with all of
+  label/status/value/note) and the Symfony `addCommand()` comment (Symfony
+  Console 7.4 does provide it).
+
 ## [1.13.21]
 
 ### Changed (from a code review)

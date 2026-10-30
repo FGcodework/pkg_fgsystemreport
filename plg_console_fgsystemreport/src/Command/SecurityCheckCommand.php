@@ -78,6 +78,15 @@ class SecurityCheckCommand extends AbstractCommand
         }
 
         if ($url !== '') {
+            $parts  = parse_url($url);
+            $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+
+            if (empty($parts['host']) || !in_array($scheme, ['http', 'https'], true)) {
+                $output->writeln('<error>Option --url must be a full http:// or https:// address, e.g. https://example.com</error>');
+
+                return 3;
+            }
+
             $this->setSiteUrl($url);
         }
 
@@ -203,6 +212,7 @@ class SecurityCheckCommand extends AbstractCommand
         $_SERVER['HTTPS']       = strtolower($parts['scheme']) === 'https' ? 'on' : 'off';
         $_SERVER['SERVER_PORT'] = (string) ($parts['port'] ?? (strtolower($parts['scheme']) === 'https' ? 443 : 80));
         $_SERVER['SCRIPT_NAME'] = rtrim($parts['path'] ?? '', '/') . '/index.php';
+        $_SERVER['PHP_SELF']    = $_SERVER['SCRIPT_NAME'];
         $_SERVER['REQUEST_URI'] = $_SERVER['SCRIPT_NAME'];
 
         if (method_exists(Uri::class, 'reset')) {

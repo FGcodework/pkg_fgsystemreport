@@ -89,7 +89,8 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
                 $class = 'success';
             }
 
-            $age = (time() - strtotime($run->run_at . ' UTC')) / 86400;
+            $runTime = strtotime($run->run_at . ' UTC');
+            $age     = $runTime !== false ? (time() - $runTime) / 86400 : 0;
 
             if ($age > self::STALE_DAYS) {
                 $text  .= ' - ' . Text::sprintf('PLG_QUICKICON_FGSYSTEMREPORT_OUTDATED', (int) floor($age));
