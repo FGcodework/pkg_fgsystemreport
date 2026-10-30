@@ -22,10 +22,10 @@ use Joomla\CMS\Factory;
  * it is needed, so it also appears on sites that upgrade in place from an
  * older version of the component, where Joomla would not run install SQL.
  *
- * Checks are identified by their (translated) label, because the Security
- * Check has no stable keys. If runs were recorded in different languages
- * (e.g. scheduler in the site language, manual in the admin language) the
- * comparison falls back to matching by position.
+ * Each stored result is [label, status, key]. Runs are compared by the
+ * stable check key, so a language change between runs does not matter.
+ * Rows recorded before 1.13.17 have no key: those are matched by (translated)
+ * label and, if the languages differ, by position as a last resort.
  *
  * @since  1.4.0
  */
@@ -109,7 +109,7 @@ class HistoryHelper
 			$ok      = 0;
 
 			foreach ($checks as $check) {
-				$results[] = [(string) $check->label, (string) $check->status];
+				$results[] = [(string) $check->label, (string) $check->status, (string) ($check->key ?? '')];
 
 				if ($check->status === 'ok') {
 					$ok++;
@@ -278,20 +278,39 @@ class HistoryHelper
 		$cur  = $current->decoded;
 		$prev = $previous->decoded;
 
-		$curMap  = [];
-		$prevMap = [];
+		// Identify a check by its stable key when every row of both runs has
+		// one; otherwise (older rows) by its translated label.
+		$hasKeys = true;
+
+		foreach (array_merge($cur, $prev) as $r) {
+			if (empty($r[2])) {
+				$hasKeys = false;
+				break;
+			}
+		}
+
+		$id = static function (array $r) use ($hasKeys): string {
+			return $hasKeys ? (string) $r[2] : (string) $r[0];
+		};
+
+		$curMap    = [];
+		$prevMap   = [];
+		$curLabel  = [];
+		$prevLabel = [];
 
 		foreach ($cur as $r) {
-			$curMap[$r[0]] = $r[1];
+			$curMap[$id($r)]   = $r[1];
+			$curLabel[$id($r)] = $r[0];
 		}
 
 		foreach ($prev as $r) {
-			$prevMap[$r[0]] = $r[1];
+			$prevMap[$id($r)]   = $r[1];
+			$prevLabel[$id($r)] = $r[0];
 		}
 
-		// Different languages between runs -> labels do not match at all;
-		// match by position when the number of checks is the same.
-		if (!array_intersect_key($curMap, $prevMap) && count($cur) === count($prev) && count($cur) > 0) {
+		// Legacy rows recorded in different languages -> labels do not match
+		// at all; match by position when the number of checks is the same.
+		if (!$hasKeys && !array_intersect_key($curMap, $prevMap) && count($cur) === count($prev) && count($cur) > 0) {
 			$prevMap = [];
 
 			foreach ($cur as $i => $r) {
@@ -299,13 +318,15 @@ class HistoryHelper
 			}
 		}
 
-		foreach ($curMap as $label => $status) {
-			if (!array_key_exists($label, $prevMap)) {
+		foreach ($curMap as $ident => $status) {
+			$label = $curLabel[$ident] ?? (string) $ident;
+
+			if (!array_key_exists($ident, $prevMap)) {
 				$out['added'][] = [$label, $status];
 				continue;
 			}
 
-			$from = $prevMap[$label];
+			$from = $prevMap[$ident];
 			$a    = $rank[$from] ?? 0;
 			$b    = $rank[$status] ?? 0;
 
@@ -316,9 +337,9 @@ class HistoryHelper
 			}
 		}
 
-		foreach ($prevMap as $label => $status) {
-			if (!array_key_exists($label, $curMap)) {
-				$out['removed'][] = [$label, $status];
+		foreach ($prevMap as $ident => $status) {
+			if (!array_key_exists($ident, $curMap)) {
+				$out['removed'][] = [$prevLabel[$ident] ?? (string) $ident, $status];
 			}
 		}
 

@@ -61,7 +61,9 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
         $app      = $this->getApplication();
         $identity = $app ? $app->getIdentity() : null;
 
-        if (!$identity || !$identity->authorise('core.manage', 'com_fgsystemreport')) {
+        // The icon links to the Security page, which needs core.admin - do not
+        // show a link that ends in a 403.
+        if (!$identity || !$identity->authorise('core.admin', 'com_fgsystemreport')) {
             return;
         }
 
@@ -104,7 +106,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'group'  => 'MOD_QUICKICON_MAINTENANCE',
             'class'  => $class,
             'name'   => Text::_('PLG_QUICKICON_FGSYSTEMREPORT_NAME'),
-            'access' => ['core.manage', 'com_fgsystemreport'],
+            'access' => ['core.admin', 'com_fgsystemreport'],
         ];
 
         if (method_exists($event, 'addResult')) {

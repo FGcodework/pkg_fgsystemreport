@@ -28,6 +28,24 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.17]
+
+### Fixed (minor items from the code audit)
+- Quick icon (plugin 1.0.2): it was shown to users with `core.manage` but
+  links to the Security page, which needs `core.admin`, so lower-privileged
+  users got a 403. The icon is now shown only to users with `core.admin`.
+- Security History now stores the stable check key with every result and
+  compares runs by key, so a language change between runs (scheduler in the
+  site language, manual run in the admin language) no longer matters. Runs
+  recorded before this version have no key and are still matched by label
+  (and by position as a last resort); the first run after the upgrade is
+  stored once more because its format differs.
+
+### Documentation
+- README states explicitly that the security score (100, minus 15 per
+  critical finding, minus 5 per warning, limited to 0-100) is a rough
+  indicator, not a certified security methodology.
+
 ## [1.13.16]
 
 ### Changed (platform requirements made explicit, from the code audit)
