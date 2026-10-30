@@ -28,6 +28,12 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.11]
+
+### Changed
+- Exposure probes (sensitive files, directory listings): the response body is now capped at 16 KB with a write callback that aborts the transfer, so a server that ignores the `Range` header and serves a huge file (for example a large `error_log`) is no longer downloaded in full. Both probes share one fetch routine; timeouts are unchanged. Tested against a 50 MB file: 16 KB read, no measurable memory use.
+- New option "Verify TLS certificate in exposure checks" (Options, default off). The probes request this very site, so by default a self-signed or staging certificate must not hide an exposed file; turn it on to require a valid certificate.
+
 ## [1.13.10]
 
 ### Security

@@ -25,6 +25,18 @@
             label="COM_FGSYSTEMREPORT_CONFIG_HISTORY_RETENTION_LABEL"
             description="COM_FGSYSTEMREPORT_CONFIG_HISTORY_RETENTION_DESC"
         />
+        <field
+            name="probe_verify_tls"
+            type="radio"
+            layout="joomla.form.field.radio.switcher"
+            default="0"
+            filter="integer"
+            label="COM_FGSYSTEMREPORT_CONFIG_PROBE_TLS_LABEL"
+            description="COM_FGSYSTEMREPORT_CONFIG_PROBE_TLS_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
     </fieldset>
 
     <fieldset name="diskgrowth" label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_FIELDSET" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_FIELDSET_DESC">

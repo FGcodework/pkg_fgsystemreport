@@ -1266,6 +1266,90 @@ class FgsystemreportHelper
 	 * @return  string|null  Latest version string, or null if the check failed
 	 */
 	/**
+	 * Fetch several URLs of this site in parallel for the exposure probes.
+	 * Each body is capped (CURLOPT_WRITEFUNCTION aborts the transfer once the
+	 * cap is reached), so a server that ignores the Range header and serves
+	 * a huge file (e.g. a large error_log) never has it downloaded in full.
+	 * TLS certificates are verified only when "probe_verify_tls" is on in the
+	 * component options: the probes target this very site, and by default a
+	 * self-signed or staging certificate must not hide an exposed file.
+	 *
+	 * @param   array  $urls   key => absolute URL
+	 * @param   bool   $range  send "Range: bytes=0-256"
+	 *
+	 * @return  array  key => object (httpCode, body)
+	 */
+	private static function probeUrls(array $urls, bool $range): array
+	{
+		$cap    = 16384;
+		$verify = false;
+
+		try {
+			$verify = (int) \Joomla\CMS\Component\ComponentHelper::getParams('com_fgsystemreport')->get('probe_verify_tls', 0) === 1;
+		} catch (\Throwable $e) {
+			// default: do not verify
+		}
+
+		$multi   = curl_multi_init();
+		$handles = [];
+		$bodies  = [];
+
+		foreach ($urls as $key => $url) {
+			$bodies[$key] = '';
+			$ch           = curl_init($url);
+			$opts         = [
+				CURLOPT_HTTPGET        => true,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_TIMEOUT        => 4,
+				CURLOPT_CONNECTTIMEOUT => 3,
+				CURLOPT_FOLLOWLOCATION => false,
+				CURLOPT_SSL_VERIFYPEER => $verify,
+				CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
+				CURLOPT_USERAGENT      => 'JC-System-Report-Security-Check',
+				CURLOPT_WRITEFUNCTION  => static function ($handle, $chunk) use (&$bodies, $key, $cap) {
+					$room = $cap - strlen($bodies[$key]);
+
+					if ($room > 0) {
+						$bodies[$key] .= substr($chunk, 0, $room);
+					}
+
+					// Returning less than strlen($chunk) aborts the transfer
+					return strlen($bodies[$key]) >= $cap ? 0 : strlen($chunk);
+				},
+			];
+
+			if ($range) {
+				$opts[CURLOPT_HTTPHEADER] = ['Range: bytes=0-256'];
+			}
+
+			curl_setopt_array($ch, $opts);
+			curl_multi_add_handle($multi, $ch);
+			$handles[$key] = $ch;
+		}
+
+		$running = null;
+		do {
+			curl_multi_exec($multi, $running);
+			curl_multi_select($multi);
+		} while ($running > 0);
+
+		$responses = [];
+
+		foreach ($handles as $key => $ch) {
+			$responses[$key] = (object) [
+				'httpCode' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
+				'body'     => $bodies[$key],
+			];
+			curl_multi_remove_handle($multi, $ch);
+			curl_close($ch);
+		}
+
+		curl_multi_close($multi);
+
+		return $responses;
+	}
+
+	/**
 	 * Check a short list of commonly-forgotten sensitive paths (.env,
 	 * .git internals, backup/config leftovers, phpinfo scripts...) for
 	 * public HTTP exposure on the site's front end. Requests run in
@@ -1329,43 +1413,13 @@ class FgsystemreportHelper
 
 		$targets = array_merge([$canaryPath => null], $paths);
 
-		$multiHandle = curl_multi_init();
-		$handles     = [];
+		$urls = [];
 
 		foreach ($targets as $path => $signature) {
-			$ch = curl_init($root . '/' . $path);
-			curl_setopt_array($ch, [
-				CURLOPT_HTTPGET        => true,
-				CURLOPT_HTTPHEADER     => ['Range: bytes=0-256'],
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_TIMEOUT        => 4,
-				CURLOPT_CONNECTTIMEOUT => 3,
-				CURLOPT_FOLLOWLOCATION => false,
-				CURLOPT_SSL_VERIFYPEER => false, // report exposure even behind a self-signed/staging cert
-				CURLOPT_USERAGENT      => 'JC-System-Report-Security-Check',
-			]);
-			curl_multi_add_handle($multiHandle, $ch);
-			$handles[$path] = $ch;
+			$urls[$path] = $root . '/' . $path;
 		}
 
-		$running = null;
-		do {
-			curl_multi_exec($multiHandle, $running);
-			curl_multi_select($multiHandle);
-		} while ($running > 0);
-
-		$responses = [];
-
-		foreach ($handles as $path => $ch) {
-			$responses[$path] = (object) [
-				'httpCode' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
-				'body'     => curl_multi_getcontent($ch),
-			];
-			curl_multi_remove_handle($multiHandle, $ch);
-			curl_close($ch);
-		}
-
-		curl_multi_close($multiHandle);
+		$responses = self::probeUrls($urls, true);
 
 		$result->available = true;
 
@@ -1423,42 +1477,13 @@ class FgsystemreportHelper
 			return rtrim($d, '/') . '/';
 		}, $dirs));
 
-		$multiHandle = curl_multi_init();
-		$handles     = [];
+		$urls = [];
 
 		foreach ($targets as $path) {
-			$ch = curl_init($root . '/' . $path);
-			curl_setopt_array($ch, [
-				CURLOPT_HTTPGET        => true,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_TIMEOUT        => 4,
-				CURLOPT_CONNECTTIMEOUT => 3,
-				CURLOPT_FOLLOWLOCATION => false,
-				CURLOPT_SSL_VERIFYPEER => false,
-				CURLOPT_USERAGENT      => 'JC-System-Report-Security-Check',
-			]);
-			curl_multi_add_handle($multiHandle, $ch);
-			$handles[$path] = $ch;
+			$urls[$path] = $root . '/' . $path;
 		}
 
-		$running = null;
-		do {
-			curl_multi_exec($multiHandle, $running);
-			curl_multi_select($multiHandle);
-		} while ($running > 0);
-
-		$responses = [];
-
-		foreach ($handles as $path => $ch) {
-			$responses[$path] = (object) [
-				'httpCode' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
-				'body'     => curl_multi_getcontent($ch),
-			];
-			curl_multi_remove_handle($multiHandle, $ch);
-			curl_close($ch);
-		}
-
-		curl_multi_close($multiHandle);
+		$responses = self::probeUrls($urls, false);
 
 		$signature = '/<title>Index of |Parent Directory<\/a>|\[To Parent Directory\]/i';
 
