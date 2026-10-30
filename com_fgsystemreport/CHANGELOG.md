@@ -28,6 +28,17 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.26]
+
+### Changed
+- "Clear history" no longer uses the browser's native confirm box. A themed
+  confirmation dialog (same style as the "Working..." overlay, light and dark
+  mode, Cancel focused by default, Esc / click outside to cancel) is used
+  instead. Any form can opt in with `data-fg-confirm="message"` and optional
+  `data-fg-confirm-ok="button label"`; the handler lives in `BusyHelper`.
+- New language keys COM_FGSYSTEMREPORT_CONFIRM_TITLE / _CONFIRM_OK (en-GB,
+  sk-SK, de-DE; 593 keys each).
+
 ## [1.13.25]
 
 ### Changed (accepted risk, from a code review)

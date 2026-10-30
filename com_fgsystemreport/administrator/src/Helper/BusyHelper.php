@@ -68,5 +68,81 @@ final class BusyHelper
 })();
 </script>
 HTML;
+
+		// Confirmation dialog: a form with data-fg-confirm="message" (optional
+		// data-fg-confirm-ok="button label") asks here instead of using the
+		// browser's native confirm() box.
+		$title  = htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_CONFIRM_TITLE'), ENT_QUOTES, 'UTF-8');
+		$cancel = htmlspecialchars(Text::_('JCANCEL'), ENT_QUOTES, 'UTF-8');
+		$okDef  = htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_CONFIRM_OK'), ENT_QUOTES, 'UTF-8');
+
+		echo <<<HTML
+<style>
+#fg-confirm-overlay{position:fixed;inset:0;z-index:20001;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5);backdrop-filter:blur(2px)}
+#fg-confirm-overlay.show{display:flex}
+#fg-confirm-overlay .fg-confirm-box{background:var(--body-bg,#fff);color:var(--body-color,#212529);width:100%;max-width:440px;padding:26px 28px 22px;border-radius:14px;border:1px solid rgba(128,128,128,.28);box-shadow:0 18px 60px rgba(0,0,0,.4)}
+#fg-confirm-overlay .fg-confirm-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+#fg-confirm-overlay .fg-confirm-icon{flex:0 0 auto;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(220,53,69,.14);color:#dc3545;font-size:20px;font-weight:800}
+#fg-confirm-overlay .fg-confirm-title{margin:0;font-size:1.1rem;font-weight:800;letter-spacing:-.01em}
+#fg-confirm-overlay .fg-confirm-msg{margin:0 0 22px;font-size:.95rem;line-height:1.5;opacity:.85}
+#fg-confirm-overlay .fg-confirm-actions{display:flex;justify-content:flex-end;gap:10px}
+@media (prefers-reduced-motion:no-preference){#fg-confirm-overlay.show .fg-confirm-box{animation:fgConfirmIn .14s ease-out}@keyframes fgConfirmIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}}
+</style>
+<div id="fg-confirm-overlay" role="alertdialog" aria-modal="true" aria-labelledby="fg-confirm-title" aria-describedby="fg-confirm-msg">
+	<div class="fg-confirm-box">
+		<div class="fg-confirm-head">
+			<span class="fg-confirm-icon" aria-hidden="true">!</span>
+			<h2 class="fg-confirm-title" id="fg-confirm-title">{$title}</h2>
+		</div>
+		<p class="fg-confirm-msg" id="fg-confirm-msg"></p>
+		<div class="fg-confirm-actions">
+			<button type="button" class="btn btn-outline-secondary" id="fg-confirm-cancel">{$cancel}</button>
+			<button type="button" class="btn btn-danger" id="fg-confirm-ok">{$okDef}</button>
+		</div>
+	</div>
+</div>
+<script>
+(function () {
+	var ov = document.getElementById('fg-confirm-overlay');
+	var okBtn = document.getElementById('fg-confirm-ok');
+	var cancelBtn = document.getElementById('fg-confirm-cancel');
+	var okDefault = okBtn.textContent;
+	var pending = null, opener = null;
+	function close() {
+		ov.classList.remove('show');
+		pending = null;
+		if (opener && opener.focus) { opener.focus(); }
+	}
+	document.addEventListener('submit', function (e) {
+		var f = e.target;
+		if (!f || !f.hasAttribute || !f.hasAttribute('data-fg-confirm') || f.__fgConfirmed) { return; }
+		e.preventDefault();
+		pending = f;
+		opener = document.activeElement;
+		document.getElementById('fg-confirm-msg').textContent = f.getAttribute('data-fg-confirm');
+		okBtn.textContent = f.getAttribute('data-fg-confirm-ok') || okDefault;
+		ov.classList.add('show');
+		cancelBtn.focus();
+	});
+	okBtn.addEventListener('click', function () {
+		var f = pending;
+		if (!f) { return; }
+		f.__fgConfirmed = true;
+		ov.classList.remove('show');
+		if (f.requestSubmit) { f.requestSubmit(); } else { f.submit(); }
+	});
+	cancelBtn.addEventListener('click', close);
+	ov.addEventListener('click', function (e) { if (e.target === ov) { close(); } });
+	document.addEventListener('keydown', function (e) {
+		if (!ov.classList.contains('show')) { return; }
+		if (e.key === 'Escape') { e.preventDefault(); close(); }
+		if (e.key === 'Tab') {
+			e.preventDefault();
+			(document.activeElement === okBtn ? cancelBtn : okBtn).focus();
+		}
+	});
+})();
+</script>
+HTML;
 	}
 }

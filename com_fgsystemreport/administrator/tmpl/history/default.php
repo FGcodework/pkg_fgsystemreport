@@ -9,6 +9,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
+use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
 
 $runs     = $this->runs ?? [];
 $days     = (int) $this->days;
@@ -120,7 +121,8 @@ if ($n > 0) {
                 <span class="icon-download me-1" aria-hidden="true"></span>CSV
             </a>
             <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.clearHistory" class="d-inline m-0 ms-1"
-                onsubmit="return confirm('<?php echo htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR_CONFIRM'), ENT_QUOTES); ?>');">
+                data-fg-confirm="<?php echo htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR_CONFIRM'), ENT_QUOTES); ?>"
+                data-fg-confirm-ok="<?php echo htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR'), ENT_QUOTES); ?>">
                 <button type="submit" class="btn btn-sm btn-outline-danger">
                     <span class="icon-trash me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_HISTORY_CLEAR'); ?>
                 </button>
@@ -290,3 +292,5 @@ if ($n > 0) {
         <?php endif; ?>
     </div>
 </div>
+
+<?php BusyHelper::render(); ?>
