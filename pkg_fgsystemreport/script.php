@@ -23,6 +23,29 @@ class Pkg_FgsystemreportInstallerScript
 
     public function preflight($type, $parent)
     {
+        // Supported platform: Joomla 5.0+ / 6.x on PHP 8.1+ (the same as the
+        // update server declares). Refuse a manual install elsewhere instead
+        // of leaving a half-working component behind.
+        if ($type !== 'uninstall') {
+            $problems = [];
+
+            if (version_compare(JVERSION, '5.0.0', '<')) {
+                $problems[] = 'Joomla 5.0 or newer is required (this site runs Joomla ' . JVERSION . ').';
+            }
+
+            if (version_compare(PHP_VERSION, '8.1.0', '<')) {
+                $problems[] = 'PHP 8.1 or newer is required (this site runs PHP ' . PHP_VERSION . ').';
+            }
+
+            if ($problems) {
+                foreach ($problems as $msg) {
+                    \Joomla\CMS\Factory::getApplication()->enqueueMessage('FG System Report: ' . $msg, 'error');
+                }
+
+                return false;
+            }
+        }
+
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
 

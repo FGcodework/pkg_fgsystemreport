@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.16]
+
+### Changed (platform requirements made explicit, from the code audit)
+- The supported platform is Joomla 5.0+ / 6.x on PHP 8.1+ (as the update
+  server and README already stated). Joomla 4 was never supported; the
+  Scheduler plugin needs 4.1+ anyway and the code targets 5/6.
+- The package installer now refuses to install on Joomla < 5.0 or PHP < 8.1
+  with a clear error message, instead of a manual install ending half-working.
+- Manifest `version` attribute updated from 4.0 to 5.0.
+- Note: compatibility is verified by syntax checks and stub tests only; no
+  live Joomla 5 / 6 matrix test has been run by the author for every release.
+
 ## [1.13.15]
 
 ### Fixed (resource use of the disk scan, from the code audit)
