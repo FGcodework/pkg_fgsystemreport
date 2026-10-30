@@ -28,6 +28,19 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.27]
+
+### Changed (from a code review)
+- Notification recipients (task options and the growth alert setting) are
+  split on comma, semicolon or whitespace and validated; invalid addresses are
+  ignored (the task logs how many) instead of being passed to the mailer
+  (task plugin 1.4.4).
+
+### Checked, no change needed
+- The reported SVG `viewBox` / `points` separators and the CSS spacing errors
+  do not exist in the source: the files are correct (a whitespace-stripped
+  preview of the repository was the source of those findings).
+
 ## [1.13.26]
 
 ### Changed

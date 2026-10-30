@@ -392,7 +392,10 @@ final class GrowthAlertHelper
 		$cfg = self::settings();
 
 		if ($cfg['recipients'] !== '') {
-			return array_values(array_filter(array_map('trim', explode(',', $cfg['recipients']))));
+			// Comma / semicolon / whitespace separated; invalid addresses are dropped
+			$all = preg_split('/[\s,;]+/', (string) $cfg['recipients'], -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+			return array_values(array_filter($all, static fn ($r) => filter_var($r, FILTER_VALIDATE_EMAIL) !== false));
 		}
 
 		return array_map(static fn ($u) => $u->email, self::superUsers());

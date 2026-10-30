@@ -294,7 +294,13 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
         $recipientsParam  = trim((string) $params->get('recipients', ''));
 
         if ($recipientsParam !== '') {
-            $recipients = array_values(array_filter(array_map('trim', explode(',', $recipientsParam))));
+            // Split on comma / semicolon / whitespace and keep only valid addresses
+            $all        = preg_split('/[\s,;]+/', $recipientsParam, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $recipients = array_values(array_filter($all, static fn ($r) => filter_var($r, FILTER_VALIDATE_EMAIL) !== false));
+
+            if (count($recipients) < count($all)) {
+                $this->logTask('Ignored ' . (count($all) - count($recipients)) . ' invalid recipient address(es) in the task options.', 'warning');
+            }
         } else {
             $recipients = $db->setQuery(
                 'SELECT DISTINCT u.email FROM ' . $db->quoteName('#__users') . ' u'
