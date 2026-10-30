@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.19]
+
+### Changed
+- Removed an unused `DatabaseInterface` import from the service providers of
+  the quickicon, console and system plugins (1.0.3 / 1.0.2 / 1.0.4). No
+  functional change.
+- Not changed: the `(array) PluginHelper::getPlugin(...)` call in the
+  providers. It is the standard Joomla core pattern and the provider only runs
+  for a plugin that is installed and enabled, so the record exists.
+
 ## [1.13.18]
 
 ### Fixed (installer script, from a second code review)
