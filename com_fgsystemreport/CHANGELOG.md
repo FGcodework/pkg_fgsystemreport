@@ -28,6 +28,25 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.15]
+
+### Fixed (resource use of the disk scan, from the code audit)
+- The Disk Usage scan walked the whole tree with no bound: on a site with a
+  very large number of folders/files it could hit `max_execution_time` or
+  `memory_limit` (the per-folder size map grows with the folder count).
+- The scan is now bounded by a maximum number of visited entries (default
+  500000), a time limit (default 25 s) and a memory guard (stops at 80 % of
+  `memory_limit`). All limits are configurable in the component options
+  (Disk scan limits); 0 = unlimited.
+- A scan that hits a limit is flagged as partial: Disk Usage shows a warning
+  with the reason, the scheduled task logs a warning, and the partial result
+  is NOT stored in the snapshot history, so it cannot cause false growth or
+  shrink alerts. The walk is depth-first, so a partial result covers a part
+  of the tree, not an even sample.
+- Task plugin 1.4.2 (logs the partial-scan warning).
+- Not implemented: truly incremental (resumable) scanning across runs - the
+  limits plus the exclude list are the supported way to handle huge trees.
+
 ## [1.13.14]
 
 ### Fixed

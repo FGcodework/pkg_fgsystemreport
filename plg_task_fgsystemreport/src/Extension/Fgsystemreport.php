@@ -136,6 +136,12 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             return Status::KNOCKOUT;
         }
 
+        if (!empty($result['partial'])) {
+            $this->logTask('Disk scan stopped early (limit: ' . ($result['reason'] ?? '?') . ', ' . (int) ($result['scanned'] ?? 0) . ' entries visited). The result is partial and was NOT stored in the history; raise the limits in the component options if needed.', 'warning');
+
+            return Status::OK;
+        }
+
         $this->logTask('Disk scan finished (' . count($result['dirs'] ?? []) . ' folders recorded).', 'info');
 
         return Status::OK;

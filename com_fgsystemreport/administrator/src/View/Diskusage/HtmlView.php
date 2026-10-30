@@ -59,6 +59,9 @@ class HtmlView extends BaseHtmlView
     /** @var string Comma-separated exclude list, as entered */
     public $excludeRaw = '';
 
+    /** @var array|null Set when a scan limit was hit: ['reason' => string, 'scanned' => int] */
+    public $partial = null;
+
     /**
      * Display the view
      *
@@ -93,11 +96,14 @@ class HtmlView extends BaseHtmlView
         $this->dirs     = $result['dirs'] ?? [];
         $this->total    = $result['total'] ?? 0;
         $this->scanTime = $result['time'] ?? null;
+        $this->partial  = !empty($result['partial'])
+            ? ['reason' => (string) ($result['reason'] ?? ''), 'scanned' => (int) ($result['scanned'] ?? 0)]
+            : null;
 
         // Comparison with the previous real scan using the same exclude list
         [$currentSnap, $prevSnap] = DiskHistoryHelper::getLatestTwo($exclude);
 
-        if ($currentSnap !== null && $prevSnap !== null) {
+        if ($this->partial === null && $currentSnap !== null && $prevSnap !== null) {
             $this->comparison = DiskHistoryHelper::compare($this->dirs, (int) $this->total, $prevSnap);
 
             if ($this->comparison !== null) {

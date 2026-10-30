@@ -33,6 +33,13 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&' . \J
 ?>
 
 <?php GrowthAlertHelper::renderBanner(); ?>
+<?php if (!empty($this->partial)) :
+    $pk = ['items' => 'ITEMS', 'time' => 'TIME', 'memory' => 'MEMORY'][$this->partial['reason']] ?? 'ITEMS'; ?>
+    <div class="alert alert-warning" role="alert">
+        <strong><?php echo Text::_('COM_FGSYSTEMREPORT_DISKUSAGE_PARTIAL_TITLE'); ?>:</strong>
+        <?php echo Text::sprintf('COM_FGSYSTEMREPORT_DISKUSAGE_PARTIAL_' . $pk, (int) $this->partial['scanned']); ?>
+    </div>
+<?php endif; ?>
 <div class="card" id="jc-disk-usage">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="m-0" style="font-size:16px;">

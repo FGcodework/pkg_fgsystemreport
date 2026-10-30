@@ -2273,19 +2273,89 @@ class FgsystemreportHelper
 
 	public static function scanDiskUsageWithTimestamp(string $path, array $exclude, int $topN): array
 	{
-		$scan         = self::scanDiskUsage($path, $exclude, $topN);
+		$scan         = self::scanDiskUsage($path, $exclude, $topN, self::getDiskScanLimits());
 		$scan['time'] = time();
 
 		// This only runs on a real scan (cache miss / forced rescan), so each
-		// run is one snapshot for the Disk Usage comparison.
-		DiskHistoryHelper::record($exclude, $scan);
-		GrowthAlertHelper::check($exclude, self::$scanSource);
+		// run is one snapshot for the Disk Usage comparison. A partial scan
+		// (a limit was hit) is NOT stored: its numbers are not comparable
+		// with a complete scan and would raise false growth/shrink alerts.
+		if (empty($scan['partial'])) {
+			DiskHistoryHelper::record($exclude, $scan);
+			GrowthAlertHelper::check($exclude, self::$scanSource);
+		}
 
 		return $scan;
 	}
 
-	public static function scanDiskUsage(string $path, array $exclude, int $topN): array
+	/**
+	 * Resource limits for the disk scan, from the component options.
+	 * 0 = unlimited.
+	 *
+	 * @return  array  ['max_items' => int, 'time' => int seconds]
+	 */
+	public static function getDiskScanLimits(): array
 	{
+		$params = \Joomla\CMS\Component\ComponentHelper::getParams('com_fgsystemreport');
+
+		return [
+			'max_items' => max(0, (int) $params->get('disk_scan_max_items', 500000)),
+			'time'      => max(0, (int) $params->get('disk_scan_time_limit', 25)),
+		];
+	}
+
+	/**
+	 * PHP memory_limit in bytes (-1 / unparsable => 0 = no limit).
+	 */
+	private static function memoryLimitBytes(): int
+	{
+		$raw = trim((string) ini_get('memory_limit'));
+
+		if ($raw === '' || $raw === '-1') {
+			return 0;
+		}
+
+		$n = (float) $raw;
+
+		switch (strtolower(substr($raw, -1))) {
+			case 'g':
+				$n *= 1024;
+				// no break
+			case 'm':
+				$n *= 1024;
+				// no break
+			case 'k':
+				$n *= 1024;
+		}
+
+		return (int) $n;
+	}
+
+	/**
+	 * Walk the tree under $path and sum file sizes per folder.
+	 *
+	 * Bounded: the walk stops early (result flagged 'partial') when the
+	 * number of visited entries, the elapsed time or the memory use (80 % of
+	 * memory_limit) exceeds its limit, so a huge site cannot exhaust PHP's
+	 * time/memory. The tree is walked depth-first, so a partial result
+	 * covers a subset of the tree, not an even sample.
+	 *
+	 * @param   string  $path     Root path
+	 * @param   array   $exclude  Folder names to skip
+	 * @param   int     $topN     How many of the largest folders to return
+	 * @param   array   $limits   ['max_items' => int, 'time' => int] (0 = unlimited)
+	 *
+	 * @return  array  ['dirs', 'total', 'scanned' => int, 'partial' => bool,
+	 *                 'reason' => ''|'items'|'time'|'memory']
+	 */
+	public static function scanDiskUsage(string $path, array $exclude, int $topN, array $limits = []): array
+	{
+		$maxItems  = (int) ($limits['max_items'] ?? 0);
+		$timeLimit = (int) ($limits['time'] ?? 0);
+		$memLimit  = self::memoryLimitBytes();
+		$started   = microtime(true);
+		$visited   = 0;
+		$reason    = '';
 		$rootPath  = rtrim($path, '/\\');
 		$dirlist   = [];
 		$totalSize = 0;
@@ -2309,7 +2379,7 @@ class FgsystemreportHelper
 			);
 		} catch (\UnexpectedValueException $e) {
 			// $path itself can't be opened (e.g. bad permissions) - nothing to scan.
-			return ['dirs' => [], 'total' => 0];
+			return ['dirs' => [], 'total' => 0, 'scanned' => 0, 'partial' => false, 'reason' => ''];
 		}
 
 		// Manual iteration instead of foreach: CATCH_GET_CHILD only catches
@@ -2335,6 +2405,26 @@ class FgsystemreportHelper
 				}
 
 				continue;
+			}
+
+			$visited++;
+
+			// Check the (cheap) item cap every entry, time/memory every 500.
+			if ($maxItems > 0 && $visited > $maxItems) {
+				$reason = 'items';
+				break;
+			}
+
+			if ($visited % 500 === 0) {
+				if ($timeLimit > 0 && (microtime(true) - $started) > $timeLimit) {
+					$reason = 'time';
+					break;
+				}
+
+				if ($memLimit > 0 && memory_get_usage(true) > $memLimit * 0.8) {
+					$reason = 'memory';
+					break;
+				}
 			}
 
 			if ($object->isDir()) {
@@ -2366,7 +2456,13 @@ class FgsystemreportHelper
 			}
 		}
 
-		return ['dirs' => self::topNFolders($dirlist, $topN), 'total' => $totalSize];
+		return [
+			'dirs'    => self::topNFolders($dirlist, $topN),
+			'total'   => $totalSize,
+			'scanned' => min($visited, $maxItems > 0 ? $maxItems : $visited),
+			'partial' => $reason !== '',
+			'reason'  => $reason,
+		];
 	}
 
 	/**
