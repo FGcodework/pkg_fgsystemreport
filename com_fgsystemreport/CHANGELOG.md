@@ -28,6 +28,17 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.18]
+
+### Fixed (installer script, from a second code review)
+- A failure while checking or auto-enabling the bundled plugins was swallowed
+  silently. It is now written to the Joomla log folder
+  (`fgsystemreport_install.log`) and shown as a warning on the install screen.
+- Consistent use of the imported `Factory` class in the installer script.
+- Not changed: the `JVERSION` check in the installer - Joomla defines it
+  during bootstrap in web and CLI installs alike, and the rest of the
+  component relies on it too.
+
 ## [1.13.17]
 
 ### Fixed (minor items from the code audit)

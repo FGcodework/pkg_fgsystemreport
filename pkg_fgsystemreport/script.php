@@ -7,6 +7,7 @@
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 
 /**
  * Package installer script - Joomla installs plugins from a package disabled,
@@ -20,6 +21,24 @@ class Pkg_FgsystemreportInstallerScript
 
     /** @var array folder => true when the plugin was not installed before this run */
     private $missing = [];
+
+    /**
+     * Record a non-fatal installer problem: into the Joomla log folder
+     * (fgsystemreport_install.log) and as a warning on the install screen,
+     * so a failed plugin auto-enable is not silent.
+     */
+    private function warn(\Throwable $e, string $what): void
+    {
+        $msg = 'FG System Report: ' . $what . ' (' . $e->getMessage() . ')';
+
+        try {
+            Log::addLogger(['text_file' => 'fgsystemreport_install.log'], Log::ALL, ['pkg_fgsystemreport']);
+            Log::add($msg, Log::WARNING, 'pkg_fgsystemreport');
+            Factory::getApplication()->enqueueMessage($msg, 'warning');
+        } catch (\Throwable $ignored) {
+            // Logging must never break the installer.
+        }
+    }
 
     public function preflight($type, $parent)
     {
@@ -39,7 +58,7 @@ class Pkg_FgsystemreportInstallerScript
 
             if ($problems) {
                 foreach ($problems as $msg) {
-                    \Joomla\CMS\Factory::getApplication()->enqueueMessage('FG System Report: ' . $msg, 'error');
+                    Factory::getApplication()->enqueueMessage('FG System Report: ' . $msg, 'error');
                 }
 
                 return false;
@@ -60,7 +79,7 @@ class Pkg_FgsystemreportInstallerScript
                 $this->missing[$folder] = (int) $db->setQuery($q)->loadResult() === 0;
             }
         } catch (\Throwable $e) {
-            // Non-fatal
+            $this->warn($e, 'could not check which plugins are already installed');
         }
 
         return true;
@@ -90,7 +109,7 @@ class Pkg_FgsystemreportInstallerScript
                 $db->setQuery($q)->execute();
             }
         } catch (\Throwable $e) {
-            // Non-fatal: the plugins can be enabled manually.
+            $this->warn($e, 'could not enable the bundled plugins automatically - enable them manually in Plugins');
         }
 
         return true;
