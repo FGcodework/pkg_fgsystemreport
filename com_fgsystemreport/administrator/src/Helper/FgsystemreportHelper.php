@@ -155,6 +155,22 @@ class FgsystemreportHelper
 		return $ids;
 	}
 
+	/**
+	 * Drop the cached Security Check result, so the next view re-runs the
+	 * checks. Called when something the checks depend on changed (extension
+	 * installed/removed/enabled/disabled, Global Configuration saved).
+	 */
+	public static function flushSecurityCache(): void
+	{
+		try {
+			Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+				->createCacheController('callback', ['defaultgroup' => 'com_fgsystemreport', 'lifetime' => 60])
+				->clean();
+		} catch (\Throwable $e) {
+			// Cache unavailable - nothing cached to drop.
+		}
+	}
+
 	public static function getSecurityChecks(
 		?string $precomputedLatestVersion = null,
 		?array $precomputedExtensions = null,

@@ -28,6 +28,24 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.28]
+
+### Changed
+- The cached Security Check result (60 minutes) is now dropped when something
+  it depends on changes: an extension is installed, updated, removed, enabled
+  or disabled, or a watched Global Configuration value is saved. The header
+  score and the Security page reflect the change on the next view instead of
+  after the cache expires (system plugin 1.0.6).
+
+### Internal
+- Added `tests/` - dependency-free tests (`php tests/run.php`, 27 cases) for
+  the security score, disk scan (limits, exclude list, dangling symlink,
+  symlink loop, TopHeap), history comparison, growth detection and accepted
+  risk, plus a GitHub Actions workflow that runs them on PHP 8.1 and 8.3.
+  The tests are not part of the installable package.
+- Removed the unused `getReportData()` from the component model and the
+  template comment block at the end of `config.xml`.
+
 ## [1.13.27]
 
 ### Changed (from a code review)

@@ -73,6 +73,19 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
         };
     }
 
+    /** Store a timeline event and drop the cached Security Check (the change may alter its findings). */
+    private static function record(string $type, string $subject, string $detail = ''): void
+    {
+        ChangeLogHelper::record($type, $subject, $detail);
+
+        static $flushed = false;
+
+        if (!$flushed && class_exists(\Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper::class)) {
+            $flushed = true;
+            \Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper::flushSecurityCache();
+        }
+    }
+
     private static function ready(): bool
     {
         if (class_exists(ChangeLogHelper::class)) {
@@ -160,7 +173,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             $type      = $route === 'update' ? 'update' : 'install';
 
             foreach (self::rows([$eid]) as $row) {
-                ChangeLogHelper::record($type, self::label($row), self::version($row));
+                self::record($type, self::label($row), self::version($row));
             }
         } catch (\Throwable $e) {
             self::fail('onInstall', $e);
@@ -204,7 +217,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
                 $name = 'extension #' . (int) ($a[1] ?? 0);
             }
 
-            ChangeLogHelper::record('uninstall', $name, $kind);
+            self::record('uninstall', $name, $kind);
         } catch (\Throwable $e) {
             self::fail('onUninstall', $e);
         }
@@ -237,7 +250,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             }
 
             foreach (self::rows($pks) as $row) {
-                ChangeLogHelper::record($value === 1 ? 'enable' : 'disable', self::label($row), self::version($row));
+                self::record($value === 1 ? 'enable' : 'disable', self::label($row), self::version($row));
             }
         } catch (\Throwable $e) {
             self::fail('onChangeState', $e);
@@ -281,7 +294,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             $ids = (array) $input->post->get('cid', [], 'array');
 
             foreach (self::rows($ids) as $row) {
-                ChangeLogHelper::record($map[$option][$task] === 1 ? 'enable' : 'disable', self::label($row), self::version($row));
+                self::record($map[$option][$task] === 1 ? 'enable' : 'disable', self::label($row), self::version($row));
             }
         } catch (\Throwable $e) {
             self::fail('onAfterRoute', $e);
@@ -331,7 +344,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             }
 
             if ($changes) {
-                ChangeLogHelper::record('config', 'Global Configuration', implode('; ', $changes));
+                self::record('config', 'Global Configuration', implode('; ', $changes));
             }
         } catch (\Throwable $e) {
             self::fail('onConfigSave', $e);
