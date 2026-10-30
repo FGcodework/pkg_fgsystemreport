@@ -24,6 +24,8 @@ use Joomla\CMS\Language\Text;
         }
         $dashLatestJoomla   = $helperClass::fetchLatestJoomlaVersion();
         $dashSecurityChecks = $helperClass::getSecurityChecks($dashLatestJoomla, $dashExtListAll);
+        // Security Check, Report and PDF export need core.admin (see the controller and views)
+        $dashIsAdmin        = \Joomla\CMS\Factory::getApplication()->getIdentity()->authorise('core.admin', 'com_fgsystemreport');
         // Status colour of a stat value, taken from the matching Security Check
         $dashStatusClass = static function (string $key) use ($dashSecurityChecks): string {
             foreach ((array) $dashSecurityChecks as $c) {
@@ -55,6 +57,7 @@ use Joomla\CMS\Language\Text;
             </span>
             <span class="fgsr-tile-more"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_DASH_VIEW_MORE', Text::_('COM_FGSYSTEMREPORT_TITLE_EXTENSIONS')); ?> &rarr;</span>
         </a>
+        <?php if ($dashIsAdmin) : ?>
         <a class="fgsr-tile <?php echo $dashSecCounts['danger'] > 0 ? 'is-bad' : ($dashSecCounts['warning'] > 0 ? 'is-warn' : 'is-ok'); ?>" href="index.php?option=com_fgsystemreport&view=security">
             <span class="fgsr-tile-title"><?php echo Text::_('COM_FGSYSTEMREPORT_TITLE_SECURITY'); ?></span>
             <span class="fgsr-tile-value">
@@ -68,11 +71,14 @@ use Joomla\CMS\Language\Text;
             </span>
             <span class="fgsr-tile-more"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_DASH_VIEW_MORE', Text::_('COM_FGSYSTEMREPORT_TITLE_SECURITY')); ?> &rarr;</span>
         </a>
+        <?php endif; ?>
+        <?php if ($dashIsAdmin) : ?>
         <a class="fgsr-tile" href="index.php?option=com_fgsystemreport&view=report">
             <span class="fgsr-tile-title"><?php echo Text::_('COM_FGSYSTEMREPORT_TITLE_REPORT'); ?></span>
             <span class="fgsr-tile-value"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_TILE_REPORT'); ?></span>
             <span class="fgsr-tile-more"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_DASH_VIEW_MORE', Text::_('COM_FGSYSTEMREPORT_TITLE_REPORT')); ?> &rarr;</span>
         </a>
+        <?php endif; ?>
     </div>
     <!-- SECTION 2: System Information & Statistics -->
     <div class="fgsr-sec-head">
@@ -219,6 +225,7 @@ use Joomla\CMS\Language\Text;
     </div>
     <!-- SECTION 1: PDF Download Configuration -->
     <!-- Download report option as CSV or PDF -->
+    <?php if ($dashIsAdmin) : ?>
     <div class="card" id="fg-pdf-block"><div class="card-body">
         <form method="post" action="index.php?option=com_fgsystemreport&task=fgsystemreport.generatePDF" style="margin:0;">
             <?php echo Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
@@ -347,6 +354,7 @@ use Joomla\CMS\Language\Text;
             </div>
         </form>
     </div></div>
+    <?php endif; ?>
 
     <?php $ownVersion = $helperClass::getOwnVersion(); ?>
     <?php if ($ownVersion !== '') : ?>

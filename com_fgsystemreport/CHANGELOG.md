@@ -28,6 +28,12 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.9]
+
+### Security
+- The PDF actions (`generatePDF`, `emailPDF`) required only `core.manage`, while the Report page and the Security Check need `core.admin`. The PDF can contain Security Check results and technical site details, and the e-mail variant lets the caller choose the recipient. Both actions now require `core.admin` in the controller.
+- Dashboard: the Security, Report tiles and the PDF section are shown only to users with `core.admin`; others no longer see links that end in a 403.
+
 ## [1.13.8]
 
 ### Changed

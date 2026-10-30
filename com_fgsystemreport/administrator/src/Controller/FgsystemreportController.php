@@ -311,7 +311,7 @@ class FgsystemreportController extends FormController
      */
     public function generatePDF()
     {
-        $this->requireAccess();
+        $this->requireAccess('core.admin');
         // CSRF protection
         Session::checkToken() or die(Text::_('JINVALID_TOKEN'));
         (new ReportPdfService())->generate();
@@ -326,7 +326,7 @@ class FgsystemreportController extends FormController
      */
     public function emailPDF()
     {
-        $this->requireAccess();
+        $this->requireAccess('core.admin');
         // CSRF protection
         Session::checkToken() or die(Text::_('JINVALID_TOKEN'));
 
