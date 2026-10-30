@@ -28,6 +28,22 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.25]
+
+### Changed (accepted risk, from a code review)
+- Accepting a finding again (replacing an existing acceptance) now runs the
+  delete + insert in one database transaction, so a failed insert can no
+  longer leave the finding without any acceptance.
+
+### Checked, no change needed
+- Accepted-risk notes are escaped wherever they are shown (Security page, PDF,
+  printable report; the CLI strips tags), so a note with HTML cannot execute;
+  stripping tags on input would only mangle legitimate text such as `a < b`.
+- The uninstall SQL already drops every table the component creates
+  (history, diskscan, alert, dbscan, event, accepted), for MySQL and PostgreSQL.
+- `getIdentity()->username ?? ''` does not raise a warning when there is no
+  identity (the null-coalescing operator covers the whole chain).
+
 ## [1.13.24]
 
 ### Fixed (system plugin, from a code review)

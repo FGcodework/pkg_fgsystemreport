@@ -104,15 +104,31 @@ final class AcceptedRiskHelper
 			$db   = Factory::getContainer()->get('DatabaseDriver');
 			$user = (string) (Factory::getApplication()->getIdentity()->username ?? '');
 
-			self::revoke($key);
-
 			$row = (object) [
 				'check_key'  => $key,
 				'note'       => mb_substr(trim($note), 0, 255),
 				'user_name'  => mb_substr($user, 0, 150),
 				'created_at' => Factory::getDate()->toSql(),
 			];
-			$db->insertObject(self::TABLE, $row);
+
+			// Replace the previous acceptance atomically: if the insert fails
+			// the old record must survive instead of being lost.
+			$db->transactionStart();
+
+			try {
+				if (!self::revoke($key)) {
+					throw new \RuntimeException('Could not replace the previous acceptance');
+				}
+
+				$db->insertObject(self::TABLE, $row);
+				$db->transactionCommit();
+			} catch (\Throwable $e) {
+				$db->transactionRollback();
+				self::$cache = null;
+
+				return false;
+			}
+
 			self::$cache = null;
 
 			return true;
