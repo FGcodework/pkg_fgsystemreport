@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.20]
+
+### Changed (PDF report memory use, from a code review)
+- The extensions table of the PDF report is written in chunks of 100 rows
+  (header repeated per chunk) instead of one huge HTML string. Measured with
+  the bundled TCPDF: 1500 rows in one call peaked at ~98 MB, the same rows
+  in chunks of 100 at ~22 MB (500 rows in one call: ~40 MB). Typical sites
+  (100-400 extensions) were never at risk; this protects very large ones.
+- The other review claims did not apply: the PDF does not contain table
+  lists, history, change logs or a directory tree, only summary figures,
+  findings, server info, template override file lists and the extension list.
+
 ## [1.13.19]
 
 ### Changed

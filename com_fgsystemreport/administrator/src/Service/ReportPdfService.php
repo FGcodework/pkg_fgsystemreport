@@ -450,6 +450,12 @@ class ReportPdfService
                 </tr>
                 ';
 
+        // The table is written in chunks: TCPDF's writeHTML() memory use grows
+        // steeply with the size of one HTML string (measured: ~98 MB for 1500
+        // rows in one call vs ~22 MB in chunks of 100), so a site with very
+        // many extensions cannot exhaust memory_limit. Each chunk repeats the
+        // header row.
+        $extHead = $html2;
         $counter = 1;
         foreach ($extensions as $ext) {
             $isPackage = $ext->is_package;
@@ -501,10 +507,18 @@ class ReportPdfService
                 <td align="center" style="width:20%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$versionCell.'</td>
             </tr>';
             $counter++;
+
+            if (($counter - 1) % 100 === 0) {
+                $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
+                $html2 = $extHead;
+            }
         }
 
-        $html2 .= '</table>';
-        $pdf->writeHTML($html2, true, false, true, false, '');
+        // Remainder (or the header-only table when there are no extensions)
+        if ($html2 !== $extHead || $counter === 1) {
+            $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
+        }
+
         $pdf->Ln(5);
 
         return $pdf;
