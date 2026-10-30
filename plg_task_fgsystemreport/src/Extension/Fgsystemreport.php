@@ -183,18 +183,27 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             $historyClass::purge();
         }
 
+        // Compare by the stable check key (the label is translated and would
+        // differ after a language change); the label is for display only.
         $currentChecks = [];
+        $labels        = [];
+
         foreach ($checks as $check) {
-            $currentChecks[$check->label] = $check->status;
+            $id                 = (string) ($check->key ?? $check->label);
+            $currentChecks[$id] = $check->status;
+            $labels[$id]        = (string) $check->label;
         }
+
+        $superGroups = implode(',', array_map('intval', method_exists($helperClass, 'getSuperUserGroupIds') ? $helperClass::getSuperUserGroupIds() : [8]));
 
         $superUserCount = (int) $db->setQuery(
             'SELECT COUNT(DISTINCT u.id) FROM ' . $db->quoteName('#__users') . ' u'
             . ' INNER JOIN ' . $db->quoteName('#__user_usergroup_map') . ' m ON m.user_id = u.id'
-            . ' WHERE m.group_id = 8'
+            . ' WHERE m.group_id IN (' . $superGroups . ')'
         )->loadResult();
 
         $currentState = [
+            'format'         => 2,
             'checks'         => $currentChecks,
             'superUserCount' => $superUserCount,
             'timestamp'      => time(),
@@ -218,16 +227,20 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
         $severityRank = ['info' => 0, 'ok' => 0, 'warning' => 1, 'danger' => 2];
         $worsened     = [];
 
-        if ($previousState !== null) {
+        // State saved by versions before the key-based format used translated
+        // labels: take it only as a new baseline (no comparison, no false alarms).
+        $migrating = $previousState !== null && (int) ($previousState['format'] ?? 1) < 2;
+
+        if ($previousState !== null && !$migrating) {
             $prevChecks = $previousState['checks'] ?? [];
 
-            foreach ($currentChecks as $label => $status) {
-                $prevStatus = $prevChecks[$label] ?? 'ok';
+            foreach ($currentChecks as $id => $status) {
+                $prevStatus = $prevChecks[$id] ?? 'ok';
                 $prevRank   = $severityRank[$prevStatus] ?? 0;
                 $curRank    = $severityRank[$status] ?? 0;
 
                 if ($curRank > $prevRank) {
-                    $worsened[] = $label;
+                    $worsened[] = $labels[$id] ?? $id;
                 }
             }
 
@@ -238,25 +251,32 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             }
         }
 
-        // Persist the new state, whether or not we end up sending an email
+        // The new state is saved only once nothing is left to report: right away
+        // when there is no notification to send, otherwise only after the
+        // e-mail went out, so a failed send is retried (the same worsening is
+        // still "new" at the next run).
         $storedParams['last_state'] = $currentState;
 
-        $db->setQuery(
-            $db->getQuery(true)
-                ->update($db->quoteName('#__extensions'))
-                ->set($db->quoteName('params') . ' = ' . $db->quote(json_encode($storedParams)))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
-                ->where($db->quoteName('folder') . ' = ' . $db->quote('task'))
-                ->where($db->quoteName('element') . ' = ' . $db->quote('fgsystemreport'))
-        )->execute();
+        $persist = function () use ($db, $storedParams): void {
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->update($db->quoteName('#__extensions'))
+                    ->set($db->quoteName('params') . ' = ' . $db->quote(json_encode($storedParams)))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('folder') . ' = ' . $db->quote('task'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('fgsystemreport'))
+            )->execute();
+        };
 
-        if ($previousState === null) {
+        if ($previousState === null || $migrating) {
+            $persist();
             $this->logTask('First run - baseline recorded, no notification sent.', 'info');
 
             return Status::OK;
         }
 
         if (empty($worsened)) {
+            $persist();
             $this->logTask('No new or worsened findings since the last run - no notification sent.', 'info');
 
             return Status::OK;
@@ -271,7 +291,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             $recipients = $db->setQuery(
                 'SELECT DISTINCT u.email FROM ' . $db->quoteName('#__users') . ' u'
                 . ' INNER JOIN ' . $db->quoteName('#__user_usergroup_map') . ' m ON m.user_id = u.id'
-                . ' WHERE m.group_id = 8 AND u.block = 0'
+                . ' WHERE m.group_id IN (' . $superGroups . ') AND u.block = 0'
             )->loadColumn() ?: [];
         }
 
@@ -319,6 +339,7 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             return Status::KNOCKOUT;
         }
 
+        $persist();
         $this->logTask('Notification email sent to ' . count($recipients) . ' recipient(s): ' . implode(', ', $worsened), 'info');
 
         return Status::OK;

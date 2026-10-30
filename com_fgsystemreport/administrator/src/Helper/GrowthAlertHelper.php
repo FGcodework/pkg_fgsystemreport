@@ -301,7 +301,7 @@ final class GrowthAlertHelper
 		return $db->setQuery(
 			'SELECT DISTINCT u.id, u.email FROM ' . $db->quoteName('#__users') . ' u'
 			. ' INNER JOIN ' . $db->quoteName('#__user_usergroup_map') . ' m ON m.user_id = u.id'
-			. ' WHERE m.group_id = 8 AND u.block = 0'
+			. ' WHERE m.group_id IN (' . implode(',', FgsystemreportHelper::getSuperUserGroupIds()) . ') AND u.block = 0'
 		)->loadObjectList() ?: [];
 	}
 

@@ -126,6 +126,35 @@ class FgsystemreportHelper
 		return $result;
 	}
 
+	/**
+	 * Ids of all user groups that hold core.admin (not just the default
+	 * "Super Users" group, id 8). Falls back to 8 if none can be determined.
+	 *
+	 * @return  int[]
+	 */
+	public static function getSuperUserGroupIds(): array
+	{
+		static $ids = null;
+
+		if ($ids === null) {
+			try {
+				$db  = Factory::getContainer()->get('DatabaseDriver');
+				$all = $db->setQuery('SELECT id FROM #__usergroups')->loadColumn() ?: [];
+				$ids = array_values(array_map('intval', array_filter($all, static function ($groupId) {
+					return Access::checkGroup((int) $groupId, 'core.admin');
+				})));
+			} catch (\Throwable $e) {
+				$ids = [];
+			}
+
+			if (!$ids) {
+				$ids = [8];
+			}
+		}
+
+		return $ids;
+	}
+
 	public static function getSecurityChecks(
 		?string $precomputedLatestVersion = null,
 		?array $precomputedExtensions = null,
@@ -437,13 +466,7 @@ class FgsystemreportHelper
 		// default "Super Users" group - a client-created group inherited
 		// from it, or core.admin granted directly to another group, would
 		// otherwise be invisible here) + stale logins
-		$allGroups = $db->setQuery(
-			'SELECT id FROM #__usergroups'
-		)->loadColumn() ?: [];
-
-		$superUserGroupIds = array_values(array_filter($allGroups, static function ($groupId) {
-			return Access::checkGroup((int) $groupId, 'core.admin');
-		}));
+		$superUserGroupIds = self::getSuperUserGroupIds();
 
 		if (!empty($superUserGroupIds)) {
 			$superUsers = $db->setQuery(

@@ -28,6 +28,13 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.7]
+
+### Fixed
+- Scheduled notification (task plugin 1.4.1): the previous and current state were compared by the translated check label; they are now compared by the stable check key, so changing the language no longer causes false alerts. State saved by an older version is taken once as a new baseline (no notification on the first run after the update).
+- Scheduled notification: the new state was saved before the e-mail was sent, so a failed send lost the alert. The state is now saved only after a successful send (or when there is nothing to send), so a failed send is retried at the next run.
+- Super User recipients and the new-Super-User detection used the hardcoded group id 8. They now use every group that holds core.admin (new `FgsystemreportHelper::getSuperUserGroupIds()`), the same as the Security Check; growth alerts use it too.
+
 ## [1.13.6]
 
 ### Changed
