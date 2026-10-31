@@ -188,7 +188,7 @@ $evLbl  = static fn ($t) => Text::_('COM_FGSYSTEMREPORT_CHANGE_T_' . strtoupper(
                     <?php foreach (array_slice(array_reverse($this->events), 0, 25) as $ev) : ?>
                         <tr>
                             <td class="text-nowrap"><?php echo $h($this->fmtUtc($ev->created_at)); ?></td>
-                            <td><?php echo $h($evLbl($ev->type)); ?>: <strong><?php echo $h($ev->subject); ?></strong><?php echo $ev->detail !== '' ? ' <span class="text-muted">' . $h($ev->detail) . '</span>' : ''; ?></td>
+                            <td><?php echo $h($evLbl($ev->type)); ?>: <strong><?php echo $h($ev->subject); ?></strong><?php echo $ev->detail !== '' ? ' <span class="text-muted">' . $h(\Fg\Component\Fgsystemreport\Administrator\Helper\ChangeLogHelper::detailLabel($ev->detail)) . '</span>' : ''; ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody></table>

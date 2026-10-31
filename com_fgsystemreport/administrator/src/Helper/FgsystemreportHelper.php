@@ -500,7 +500,7 @@ class FgsystemreportHelper
 
 		if (!empty($superUserGroupIds)) {
 			$superUsers = $db->setQuery(
-				'SELECT DISTINCT u.id, u.username, u.block, u.lastvisitDate FROM #__users u'
+				'SELECT DISTINCT u.id, u.username, u.block, u.lastvisitDate, u.registerDate FROM #__users u'
 				. ' INNER JOIN #__user_usergroup_map m ON m.user_id = u.id'
 				. ' WHERE m.group_id IN (' . implode(',', array_map('intval', $superUserGroupIds)) . ')'
 			)->loadObjectList() ?: [];
@@ -529,6 +529,24 @@ class FgsystemreportHelper
 			: (count($superUsers) > 3 ? Text::_('COM_FGSYSTEMREPORT_SEC_SUPERUSERS_MANY') : '');
 		$add('COM_FGSYSTEMREPORT_SEC_SUPERUSERS', $suStatus,
 			count($superUsers) . ' (' . implode(', ', $names) . ')', $suNote);
+
+		// 8a) Super Users created recently: an unexpected new administrator
+		// account is the most common way an intruder keeps access.
+		$newSince = strtotime('-14 days');
+		$newNames = [];
+
+		foreach ($superUsers as $su) {
+			if (!$su->block && !empty($su->registerDate) && strtotime($su->registerDate . ' UTC') >= $newSince) {
+				$newNames[] = $su->username . ' (' . substr((string) $su->registerDate, 0, 10) . ')';
+			}
+		}
+
+		if ($newNames) {
+			$add('COM_FGSYSTEMREPORT_SEC_SUPERUSERS_NEW', 'warning', (string) count($newNames),
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_SUPERUSERS_NEW_FOUND', implode(', ', $newNames)));
+		} else {
+			$add('COM_FGSYSTEMREPORT_SEC_SUPERUSERS_NEW', 'ok', '0', '');
+		}
 
 		// 8b) Failed Super User login attempts, from Joomla's own User
 		// Actions Log (requires the "Action Log - Joomla" plugin to be
@@ -1241,6 +1259,35 @@ class FgsystemreportHelper
 				$add('COM_FGSYSTEMREPORT_SEC_HSTS', 'info', Text::_('JNO'), Text::_('COM_FGSYSTEMREPORT_SEC_HSTS_MISSING'));
 			} else {
 				$add('COM_FGSYSTEMREPORT_SEC_HSTS', 'ok', $hsts, '');
+			}
+		}
+
+		// 29b) Basic browser-hardening headers (same probe as HSTS)
+		$home = ExtraChecksHelper::homeHeaders();
+
+		if ($home !== null) {
+			$missingHdr = ExtraChecksHelper::missingSecurityHeaders($home);
+
+			if (!$missingHdr) {
+				$add('COM_FGSYSTEMREPORT_SEC_HEADERS', 'ok', Text::_('JYES'), '');
+			} else {
+				// Only a missing Referrer-Policy is informational; no nosniff / framing protection is a warning
+				$add('COM_FGSYSTEMREPORT_SEC_HEADERS', $missingHdr === ['Referrer-Policy'] ? 'info' : 'warning',
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_HEADERS_VALUE', 3 - count($missingHdr), 3),
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_HEADERS_MISSING', implode(', ', $missingHdr)));
+			}
+		}
+
+		// 29c) Persistence directives in .htaccess / .user.ini / php.ini
+		$pers = ExtraChecksHelper::checkPersistenceDirectives();
+
+		if ($pers !== null) {
+			if ($pers['count'] > 0) {
+				$add('COM_FGSYSTEMREPORT_SEC_PERSISTENCE', $pers['critical'] > 0 ? 'danger' : 'warning', (string) $pers['count'],
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_PERSISTENCE_FOUND', implode('; ', $pers['findings'])));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_PERSISTENCE', 'ok', '0',
+					$pers['partial'] ? Text::_('COM_FGSYSTEMREPORT_SEC_PERSISTENCE_PARTIAL') : '');
 			}
 		}
 

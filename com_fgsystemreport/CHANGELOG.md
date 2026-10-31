@@ -28,6 +28,42 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.31]
+
+Three additions inspired by a review of a third-party security extension
+(ideas only, all code written from scratch).
+
+### Added
+- **Super User tracking.** The system plugin (1.0.7) records a timeline entry
+  when a Super User account is created or an existing account is moved into a
+  group that has `core.admin` (new event type "user account"). New Security
+  Check "New Super Users (14 days)": a warning lists Super User accounts
+  registered in the last 14 days, so an unexpected administrator does not go
+  unnoticed. A legitimate new admin can be marked as an accepted risk.
+- **Persistence directives check.** Looks in `.htaccess`, `.user.ini` and
+  `php.ini` of the web root and `/administrator`, and in any such file planted
+  under `/images`, `/media` and `/tmp`, for `auto_prepend_file` /
+  `auto_append_file` (code that runs around every script) and for PHP
+  handlers on images, text and other non-PHP files. Handlers on images/text
+  and anything found in the upload folders are critical; a prepend/append
+  directive in the web root is a warning. Ordinary `AddHandler ... .php`
+  lines are not reported.
+- **Security headers check.** `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options` or CSP `frame-ancestors`, and `Referrer-Policy` of the
+  home page. Missing nosniff or framing protection is a warning, a missing
+  Referrer-Policy alone is informational.
+- 12 more tests (44 in total).
+
+### Changed
+- HSTS and the new header check share one HEAD request of the home page.
+  Only the headers of the final response after redirects are used (before,
+  an HSTS header sent by a redirect hop could be mistaken for the final one).
+
+### Not tested live
+- Logic is covered by unit tests and a run against a temporary directory
+  tree; the Joomla user-save events (`onUserBeforeSave`/`onUserAfterSave`)
+  and the header probe still need a check on a real site.
+
 ## [1.13.30]
 
 ### Changed

@@ -40,8 +40,13 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             'onContentChangeState'      => 'onChangeState',
             'onAfterRoute'              => 'onAfterRoute',
             'onApplicationBeforeSave'   => 'onConfigSave',
+            'onUserBeforeSave'          => 'onUserBeforeSave',
+            'onUserAfterSave'           => 'onUserAfterSave',
         ];
     }
+
+    /** @var array<int,int[]> group ids a user had before the current save (user id => groups) */
+    private static array $groupsBefore = [];
 
     /** Event arguments as a list: same for numbered (Joomla 4) and named (5/6) events. */
     private static function args(Event $event): array
@@ -298,6 +303,82 @@ final class Fgsystemreport extends CMSPlugin implements SubscriberInterface
             }
         } catch (\Throwable $e) {
             self::fail('onAfterRoute', $e);
+        }
+    }
+
+    /** @return int[] group ids of a user, straight from the map table */
+    private static function userGroups(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $q  = $db->getQuery(true)
+            ->select($db->quoteName('group_id'))
+            ->from($db->quoteName('#__user_usergroup_map'))
+            ->where($db->quoteName('user_id') . ' = ' . $userId);
+
+        return array_map('intval', (array) $db->setQuery($q)->loadColumn());
+    }
+
+    /** Is any of these groups allowed core.admin (i.e. effectively a Super User group)? */
+    private static function hasSuperGroup(array $groups): bool
+    {
+        return (bool) array_intersect($groups, \Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper::getSuperUserGroupIds());
+    }
+
+    /** Remember the groups before a user is saved, to tell "created" from "promoted" afterwards. */
+    public function onUserBeforeSave(Event $event): void
+    {
+        try {
+            $a  = self::args($event);
+            $id = (int) ((is_array($a[0] ?? null) ? ($a[0]['id'] ?? 0) : 0));
+
+            if ($id > 0) {
+                self::$groupsBefore[$id] = self::userGroups($id);
+            }
+        } catch (\Throwable $e) {
+            // never break saving a user
+        }
+    }
+
+    /**
+     * Timeline entry when a Super User is created or an existing account
+     * is moved into a group that has core.admin. Plain edits of accounts that
+     * already were Super Users are not logged.
+     */
+    public function onUserAfterSave(Event $event): void
+    {
+        try {
+            $a = self::args($event);
+
+            if (empty($a[2]) || !is_array($a[0] ?? null)) {
+                return; // save failed
+            }
+
+            if (!self::ready() || !class_exists(\Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper::class)) {
+                return;
+            }
+
+            $id = (int) ($a[0]['id'] ?? 0);
+
+            if ($id <= 0) {
+                return;
+            }
+
+            $wasSuper = self::hasSuperGroup(self::$groupsBefore[$id] ?? []);
+            unset(self::$groupsBefore[$id]);
+
+            if ($wasSuper || !self::hasSuperGroup(self::userGroups($id))) {
+                return;
+            }
+
+            $name = (string) ($a[0]['username'] ?? ('#' . $id));
+
+            self::record('user', $name, !empty($a[1]) ? 'su_created' : 'su_promoted');
+        } catch (\Throwable $e) {
+            self::fail('onUserAfterSave', $e);
         }
     }
 

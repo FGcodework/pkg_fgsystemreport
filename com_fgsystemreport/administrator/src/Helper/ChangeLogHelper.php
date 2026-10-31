@@ -60,11 +60,11 @@ final class ChangeLogHelper
 	/**
 	 * Store one event. Identical events within a minute are stored once.
 	 *
-	 * @param   string  $type  install|update|uninstall|enable|disable|config
+	 * @param   string  $type  install|update|uninstall|enable|disable|config|user
 	 */
 	public static function record(string $type, string $subject, string $detail = ''): bool
 	{
-		if (!in_array($type, ['install', 'update', 'uninstall', 'enable', 'disable', 'config'], true) || !self::ensureTable()) {
+		if (!in_array($type, ['install', 'update', 'uninstall', 'enable', 'disable', 'config', 'user'], true) || !self::ensureTable()) {
 			return false;
 		}
 
@@ -111,6 +111,22 @@ final class ChangeLogHelper
 
 			return false;
 		}
+	}
+
+	/**
+	 * Display text of an event detail: codes such as "su_created" are
+	 * translated, everything else (versions, config diffs) is shown as stored.
+	 */
+	public static function detailLabel(string $detail): string
+	{
+		if (!preg_match('/^su_[a-z_]+$/', $detail)) {
+			return $detail;
+		}
+
+		$key  = 'COM_FGSYSTEMREPORT_CHANGE_D_' . strtoupper($detail);
+		$text = \Joomla\CMS\Language\Text::_($key);
+
+		return $text === $key ? $detail : $text;
 	}
 
 	/**

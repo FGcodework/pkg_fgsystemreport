@@ -74,7 +74,7 @@ if ($n > 0) {
             $ex = round($x($ets), 1);
             $chart .= '<line x1="' . $ex . '" x2="' . $ex . '" y1="' . $pt . '" y2="' . ($H - $pb)
                 . '" stroke="#fd7e14" stroke-opacity="0.55" stroke-dasharray="3 3"><title>'
-                . htmlspecialchars($fmt($ev->created_at) . ' - ' . $evLabel($ev->type) . ': ' . $ev->subject . ($ev->detail !== '' ? ' (' . $ev->detail . ')' : ''))
+                . htmlspecialchars($fmt($ev->created_at) . ' - ' . $evLabel($ev->type) . ': ' . $ev->subject . ($ev->detail !== '' ? ' (' . \Fg\Component\Fgsystemreport\Administrator\Helper\ChangeLogHelper::detailLabel($ev->detail) . ')' : ''))
                 . '</title></line>';
         }
     }
@@ -228,7 +228,7 @@ if ($n > 0) {
                 if ($pAt !== null) {
                     foreach ($events as $ev) {
                         if ($ev->created_at > $pAt && $ev->created_at <= $r->run_at) {
-                            $runEv[] = $evLabel($ev->type) . ': ' . $ev->subject . ($ev->detail !== '' ? ' (' . $ev->detail . ')' : '');
+                            $runEv[] = $evLabel($ev->type) . ': ' . $ev->subject . ($ev->detail !== '' ? ' (' . \Fg\Component\Fgsystemreport\Administrator\Helper\ChangeLogHelper::detailLabel($ev->detail) . ')' : '');
                         }
                     }
                 }
@@ -282,8 +282,8 @@ if ($n > 0) {
                 <?php foreach (array_slice(array_reverse($events), 0, 60) as $ev) : ?>
                     <tr>
                         <td class="text-nowrap"><?php echo htmlspecialchars($fmt($ev->created_at)); ?></td>
-                        <td><span class="badge <?php echo ['install' => 'bg-primary', 'update' => 'bg-success', 'uninstall' => 'bg-danger', 'enable' => 'bg-success', 'disable' => 'bg-secondary', 'config' => 'bg-warning text-dark'][$ev->type] ?? 'bg-secondary'; ?>"><?php echo htmlspecialchars($evLabel($ev->type)); ?></span> <?php echo htmlspecialchars($ev->subject); ?></td>
-                        <td class="small"><?php echo htmlspecialchars($ev->detail); ?></td>
+                        <td><span class="badge <?php echo ['install' => 'bg-primary', 'update' => 'bg-success', 'uninstall' => 'bg-danger', 'enable' => 'bg-success', 'disable' => 'bg-secondary', 'config' => 'bg-warning text-dark', 'user' => 'bg-danger'][$ev->type] ?? 'bg-secondary'; ?>"><?php echo htmlspecialchars($evLabel($ev->type)); ?></span> <?php echo htmlspecialchars($ev->subject); ?></td>
+                        <td class="small"><?php echo htmlspecialchars(\Fg\Component\Fgsystemreport\Administrator\Helper\ChangeLogHelper::detailLabel($ev->detail)); ?></td>
                         <td class="small"><?php echo htmlspecialchars($ev->user_name); ?></td>
                     </tr>
                 <?php endforeach; ?>
