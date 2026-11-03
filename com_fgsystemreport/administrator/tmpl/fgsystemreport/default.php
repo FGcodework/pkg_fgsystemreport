@@ -93,15 +93,15 @@ use Joomla\CMS\Language\Text;
     <div class="fgsr-stats jc-audit-wrapper">
         <div class="fgsr-stat jc-audit-box">
             <h3 class="fgsr-stat-label"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_STAT_CATEGORIES'); ?></h3>
-            <p class="fgsr-stat-value"><?php echo $this->reportdata['total_categories']; ?></p>
+            <p class="fgsr-stat-value"><?php echo (int) ($this->reportdata['total_categories'] ?? 0); ?></p>
         </div>
         <div class="fgsr-stat jc-audit-box">
             <h3 class="fgsr-stat-label"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_STAT_ARTICLES'); ?></h3>
-            <p class="fgsr-stat-value"><?php echo $this->reportdata['total_articles']; ?></p>
+            <p class="fgsr-stat-value"><?php echo (int) ($this->reportdata['total_articles'] ?? 0); ?></p>
         </div>
         <div class="fgsr-stat jc-audit-box">
             <h3 class="fgsr-stat-label"><?php echo Text::_('COM_FGSYSTEMREPORT_DASH_STAT_USERS'); ?></h3>
-            <p class="fgsr-stat-value"><?php echo $this->reportdata['total_users']; ?></p>
+            <p class="fgsr-stat-value"><?php echo (int) ($this->reportdata['total_users'] ?? 0); ?></p>
         </div>
         <!--Total Published Menus-->
         <div class="fgsr-stat jc-audit-box">

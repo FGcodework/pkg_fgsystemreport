@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.32]
+
+### Fixed
+- Dashboard: the Article Categories, Articles and Users boxes showed "Warning:
+  Trying to access array offset on null" on sites that display PHP warnings.
+  Regression from 1.13.28, where `getReportData()` was removed from the model
+  as "unused" although the dashboard template still called it. The method is
+  back (it only counts published content categories, published articles and
+  users), and the template falls back to 0 instead of raising a warning.
+
 ## [1.13.31]
 
 Three additions inspired by a review of a third-party security extension
