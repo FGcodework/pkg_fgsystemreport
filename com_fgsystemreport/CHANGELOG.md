@@ -28,6 +28,15 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.35]
+
+### Changed
+- Security headers check: the note no longer sends everything to the Joomla
+  HTTP Headers plugin. That plugin offers X-Frame-Options and Referrer-Policy
+  but has no X-Content-Type-Options option (its "Force HTTP Headers" list is a
+  fixed selection), so a missing `X-Content-Type-Options` now points to the
+  `.htaccess` line `Header always set X-Content-Type-Options nosniff`.
+
 ## [1.13.34]
 
 ### Fixed

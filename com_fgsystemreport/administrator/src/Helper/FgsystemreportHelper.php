@@ -156,6 +156,29 @@ class FgsystemreportHelper
 	}
 
 	/**
+	 * Where to fix each missing header: the Joomla HTTP Headers plugin can set
+	 * X-Frame-Options and Referrer-Policy but not X-Content-Type-Options.
+	 *
+	 * @param   string[]  $missing  names from ExtraChecksHelper::missingSecurityHeaders()
+	 *
+	 * @since   1.13.35
+	 */
+	public static function headerHints(array $missing): string
+	{
+		$hints = '';
+
+		if (count(array_diff($missing, ['X-Content-Type-Options']))) {
+			$hints .= ' ' . Text::_('COM_FGSYSTEMREPORT_SEC_HEADERS_HINT_PLUGIN');
+		}
+
+		if (in_array('X-Content-Type-Options', $missing, true)) {
+			$hints .= ' ' . Text::_('COM_FGSYSTEMREPORT_SEC_HEADERS_HINT_NOSNIFF');
+		}
+
+		return $hints;
+	}
+
+	/**
 	 * Is this extension part of Joomla itself (updated with the core)?
 	 * Protected extensions and those whose manifest author is the Joomla! Project.
 	 *
@@ -1277,7 +1300,8 @@ class FgsystemreportHelper
 				// Only a missing Referrer-Policy is informational; no nosniff / framing protection is a warning
 				$add('COM_FGSYSTEMREPORT_SEC_HEADERS', $missingHdr === ['Referrer-Policy'] ? 'info' : 'warning',
 					Text::sprintf('COM_FGSYSTEMREPORT_SEC_HEADERS_VALUE', 3 - count($missingHdr), 3),
-					Text::sprintf('COM_FGSYSTEMREPORT_SEC_HEADERS_MISSING', implode(', ', $missingHdr)));
+					Text::sprintf('COM_FGSYSTEMREPORT_SEC_HEADERS_MISSING', implode(', ', $missingHdr))
+					. self::headerHints($missingHdr));
 			}
 		}
 
