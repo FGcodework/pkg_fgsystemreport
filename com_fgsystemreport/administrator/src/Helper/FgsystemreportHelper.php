@@ -156,6 +156,23 @@ class FgsystemreportHelper
 	}
 
 	/**
+	 * Is this extension part of Joomla itself (updated with the core)?
+	 * Protected extensions and those whose manifest author is the Joomla! Project.
+	 *
+	 * @since  1.13.34
+	 */
+	public static function isCoreExtension(string $manifestCache, int $protected = 0): bool
+	{
+		if ($protected === 1) {
+			return true;
+		}
+
+		$m = json_decode($manifestCache, true);
+
+		return is_array($m) && isset($m['author']) && stripos((string) $m['author'], 'Joomla! Project') !== false;
+	}
+
+	/**
 	 * Drop the cached Security Check result, so the next view re-runs the
 	 * checks. Called when something the checks depend on changed (extension
 	 * installed/removed/enabled/disabled, Global Configuration saved).
@@ -710,7 +727,7 @@ class FgsystemreportHelper
 
 		try {
 			$extRows = (array) $db->setQuery(
-				"SELECT e.extension_id, e.type, e.element, e.folder, e.client_id, e.package_id,"
+				"SELECT e.extension_id, e.type, e.element, e.folder, e.client_id, e.package_id, e.protected, e.manifest_cache,"
 				. " (SELECT COUNT(*) FROM #__update_sites_extensions use_"
 				. "   INNER JOIN #__update_sites us ON us.update_site_id = use_.update_site_id"
 				. "   WHERE use_.extension_id = e.extension_id AND us.enabled = 1) AS active_sites"
@@ -740,6 +757,12 @@ class FgsystemreportHelper
 			};
 
 			foreach ($extRows as $r) {
+				// Core extensions added by a later Joomla release get ids >= 10000 on
+				// upgraded sites, so the id alone does not tell them from third-party ones
+				if (self::isCoreExtension((string) $r->manifest_cache, (int) $r->protected)) {
+					continue;
+				}
+
 				$label = $r->type === 'plugin' ? 'plg_' . $r->folder . '_' . $r->element : $r->element;
 				$dirs  = $base($r);
 

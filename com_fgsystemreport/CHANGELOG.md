@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.34]
+
+### Fixed
+- "No update site" check listed Joomla's own extensions (e.g.
+  `plg_workflow_featuring`, `plg_workflow_publishing`,
+  `plg_workflow_notification`, `plg_webservices_installer`) on sites upgraded
+  from older versions: core extensions introduced by a later release get ids
+  above 10000 there, and the check treated every such id as third-party.
+  Protected extensions and those whose manifest author is "Joomla! Project"
+  are now skipped.
+- 3 more tests (47 in total).
+
 ## [1.13.33]
 
 ### Fixed
