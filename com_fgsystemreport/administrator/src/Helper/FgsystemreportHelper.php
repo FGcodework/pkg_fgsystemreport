@@ -994,14 +994,17 @@ class FgsystemreportHelper
 		// 19) PHP/DB clock skew - a desynced server and database clock is
 		// a subtle, hard-to-diagnose source of bugs (premature or late
 		// session expiry, mistimed scheduled tasks, cache invalidation).
-		// time() and MySQL's UTC_TIMESTAMP() are both UTC-based, so this
-		// comparison is fair regardless of either side's configured
-		// timezone.
+		// time() and the database's epoch (MySQL/MariaDB UNIX_TIMESTAMP(),
+		// PostgreSQL EXTRACT(EPOCH ...)) are both seconds since 1970 UTC, so
+		// the comparison does not depend on any configured timezone.
+		// (Before 1.13.33 UNIX_TIMESTAMP(UTC_TIMESTAMP()) was used, which
+		// reads a UTC value as local time and reported exactly the timezone
+		// offset when the server timezone was not UTC.)
 		$isMysqlFamily = stripos((string) $dbType, 'mysql') !== false || stripos((string) $dbType, 'maria') !== false;
 
 		try {
-			// MySQL/MariaDB: UTC_TIMESTAMP(); PostgreSQL: epoch of now() (always UTC based)
-			$clockSql       = $isMysqlFamily ? 'SELECT UNIX_TIMESTAMP(UTC_TIMESTAMP()) AS ts' : 'SELECT CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT) AS ts';
+			// MySQL/MariaDB: current epoch; PostgreSQL: epoch of now()
+			$clockSql       = $isMysqlFamily ? 'SELECT UNIX_TIMESTAMP() AS ts' : 'SELECT CAST(EXTRACT(EPOCH FROM NOW()) AS BIGINT) AS ts';
 			$dbUtcTimestamp = (int) $db->setQuery($clockSql)->loadResult();
 			$skewSeconds    = abs(time() - $dbUtcTimestamp);
 		} catch (\Throwable $e) {
@@ -1024,32 +1027,9 @@ class FgsystemreportHelper
 
 		$tzNote   = Text::sprintf('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW_TZ', $phpTz, $dbTz);
 
-		// A skew that lands within a few seconds of a whole hour (3600,
-		// 7200, ...), combined with the DB's time_zone being literally
-		// "SYSTEM", is much more likely to be MySQL/MariaDB
-		// misinterpreting UTC_TIMESTAMP() when its timezone tables were
-		// never loaded (mysql_tzinfo_to_sql was never run - common on
-		// shared hosting) than an actual desynced clock. Downgrade that
-		// specific pattern to a warning with an explanation instead of a
-		// flat "Critical", rather than needing a human to notice the
-		// suspiciously round number themselves. Distance is measured to
-		// the *nearest* multiple of an hour (both just-above and
-		// just-below count, e.g. 3595s is as suspicious as 3605s), and
-		// requires skew > 60s so a genuinely fine near-zero skew is never
-		// affected by this at all.
-		$remainder           = $skewSeconds !== null ? $skewSeconds % 3600 : null;
-		$distanceToWholeHour = $remainder !== null ? min($remainder, 3600 - $remainder) : null;
-		$looksLikeTzMisread  = $skewSeconds !== null
-			&& $skewSeconds > 60
-			&& $dbTz === 'SYSTEM'
-			&& $distanceToWholeHour <= 5;
-
 		if ($skewSeconds === null) {
 			$add('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW', 'info', Text::_('JNONE'),
 				Text::_('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW_CHECK_FAILED'));
-		} elseif ($looksLikeTzMisread) {
-			$add('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW', 'warning', $skewSeconds . 's',
-				$tzNote . ' ' . Text::_('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW_LIKELY_TZ_MISREAD'));
 		} elseif ($skewSeconds > 300) {
 			$add('COM_FGSYSTEMREPORT_SEC_CLOCK_SKEW', 'danger', $skewSeconds . 's', $tzNote);
 		} elseif ($skewSeconds > 60) {

@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.33]
+
+### Fixed
+- PHP/DB clock check: false "timezone-interpretation mismatch" warning on
+  servers whose MySQL/MariaDB `time_zone` is `SYSTEM` and not UTC (e.g.
+  Europe/Bratislava). The check compared PHP's time with
+  `UNIX_TIMESTAMP(UTC_TIMESTAMP())`, which reads a UTC value as local time and
+  therefore always differed by exactly the timezone offset (3600 / 7200 s).
+  It now compares with `UNIX_TIMESTAMP()` (the real epoch), so only a genuinely
+  different clock is reported. The earlier explanation about missing timezone
+  tables (`mysql_tzinfo_to_sql`) was wrong for this case and is gone.
+
 ## [1.13.32]
 
 ### Fixed
