@@ -181,7 +181,7 @@ use Joomla\CMS\Language\Text;
                 if ($latestJoomla !== null) {
                     echo '<span class="text-success">' . htmlspecialchars($latestJoomla) . '</span>';
                 } else {
-                    echo '<span class="text-danger">' . Text::_('COM_FGSYSTEMREPORT_DASH_VERSION_CHECK_FAILED') . '</span>';
+                    echo '<span class="text-muted" title="' . htmlspecialchars(Text::_('COM_FGSYSTEMREPORT_DASH_VERSION_UNAVAILABLE_HINT')) . '">' . Text::_('COM_FGSYSTEMREPORT_DASH_VERSION_UNAVAILABLE') . '</span>';
                 }
                 ?>
             </p>

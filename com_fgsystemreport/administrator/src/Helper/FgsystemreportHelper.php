@@ -1946,28 +1946,73 @@ class FgsystemreportHelper
 		return $decoded['version'] ?? '';
 	}
 
+	/**
+	 * Latest Joomla release according to the official servers. The result
+	 * (including "unreachable") is cached for 60 minutes, so a server without
+	 * internet access does not wait for a timeout on every page view.
+	 */
 	public static function fetchLatestJoomlaVersion(): ?string
+	{
+		try {
+			$result = Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+				->createCacheController('callback', ['defaultgroup' => 'com_fgsystemreport_joomlaver', 'lifetime' => 60])
+				->get([self::class, 'fetchLatestJoomlaVersionRemote'], [], 'latest-joomla');
+
+			return is_string($result) && $result !== '' ? $result : null;
+		} catch (\Throwable $e) {
+			return self::fetchLatestJoomlaVersionRemote();
+		}
+	}
+
+	/**
+	 * GET a URL with curl. Uses the proxy from Joomla's Global Configuration
+	 * when one is enabled (intranet servers often reach the internet only
+	 * through it). Returns null on any failure.
+	 */
+	private static function httpGetBody(string $url): ?string
 	{
 		if (!function_exists('curl_init')) {
 			return null;
 		}
 
-		if (version_compare(JVERSION, '5.4.1', '>=')) {
-			$ch = curl_init('https://downloads.joomla.org/api/v1/latest/cms');
-			curl_setopt_array($ch, [
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_TIMEOUT        => 5,
-				CURLOPT_USERAGENT      => 'JC-System-Report-Version-Check',
-				CURLOPT_SSL_VERIFYPEER => true,
-			]);
-			$response = curl_exec($ch);
-			curl_close($ch);
+		$ch = curl_init($url);
 
-			if ($response === false) {
-				return null;
+		$opts = [
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_CONNECTTIMEOUT => 3,
+			CURLOPT_USERAGENT      => 'JC-System-Report-Version-Check',
+			CURLOPT_SSL_VERIFYPEER => true,
+		];
+
+		try {
+			$app = Factory::getApplication();
+
+			if ((int) $app->get('proxy_enable', 0) === 1 && (string) $app->get('proxy_host', '') !== '') {
+				$opts[CURLOPT_PROXY] = $app->get('proxy_host') . ':' . (int) $app->get('proxy_port', 8080);
+
+				if ((string) $app->get('proxy_user', '') !== '') {
+					$opts[CURLOPT_PROXYUSERPWD] = $app->get('proxy_user') . ':' . $app->get('proxy_pass', '');
+				}
 			}
+		} catch (\Throwable $e) {
+			// no proxy settings available: connect directly
+		}
 
-			$data = json_decode($response, true);
+		curl_setopt_array($ch, $opts);
+		$response = curl_exec($ch);
+		$code     = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+		curl_close($ch);
+
+		return $response !== false && $code >= 200 && $code < 300 ? (string) $response : null;
+	}
+
+	/** Uncached lookup behind fetchLatestJoomlaVersion() (public: the cache controller calls it). */
+	public static function fetchLatestJoomlaVersionRemote(): ?string
+	{
+		if (version_compare(JVERSION, '5.4.1', '>=')) {
+			$body = self::httpGetBody('https://downloads.joomla.org/api/v1/latest/cms');
+			$data = $body === null ? null : json_decode($body, true);
 
 			if (empty($data['branches']) || !is_array($data['branches'])) {
 				return null;
@@ -1978,17 +2023,9 @@ class FgsystemreportHelper
 			return !empty($latest['version']) ? (string) $latest['version'] : null;
 		}
 
-		$ch = curl_init('https://update.joomla.org/core/list.xml');
-		curl_setopt_array($ch, [
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_TIMEOUT        => 5,
-			CURLOPT_USERAGENT      => 'JC-System-Report-Version-Check',
-			CURLOPT_SSL_VERIFYPEER => true,
-		]);
-		$xmlContent = curl_exec($ch);
-		curl_close($ch);
+		$xmlContent = self::httpGetBody('https://update.joomla.org/core/list.xml');
 
-		if ($xmlContent === false) {
+		if ($xmlContent === null) {
 			return null;
 		}
 

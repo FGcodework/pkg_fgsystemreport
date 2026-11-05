@@ -28,6 +28,28 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.13.36]
+
+Intranet / hardened servers.
+
+### Fixed
+- Logo in the component header was a broken image on servers that do not
+  serve files from `administrator/components/.../assets` directly. It is now
+  embedded in the page as a data URI (like the stylesheet already was).
+
+### Changed
+- "Next Joomla version": the lookup honours the proxy from Joomla's Global
+  Configuration, requires an HTTP 2xx answer, and its result - including
+  "unreachable" - is cached for 60 minutes. Before, a server without internet
+  access waited for the 5 s timeout on every dashboard view. When the lookup
+  fails the tile now says "Not available" in a neutral colour with an
+  explanatory tooltip instead of a red "Version check failed".
+
+### Not tested live
+- The proxy support (`proxy_enable`, `proxy_host`, `proxy_port`,
+  `proxy_user`, `proxy_pass`) follows Joomla's configuration keys but has not
+  been tried against a real proxy.
+
 ## [1.13.35]
 
 ### Changed

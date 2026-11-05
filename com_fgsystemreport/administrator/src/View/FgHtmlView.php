@@ -98,6 +98,31 @@ class FgHtmlView extends JoomlaHtmlView
         return $ver;
     }
 
+    /**
+     * The logo as a data: URI. A separate image request to the component's
+     * assets folder fails on servers that block direct access there
+     * (common on intranet / hardened setups), the CSS is inlined for the same reason.
+     */
+    private function fgLogoSrc(): string
+    {
+        static $src = null;
+
+        if ($src === null) {
+            $src  = Uri::root(true) . '/administrator/components/com_fgsystemreport/assets/images/fg-logo.webp';
+            $file = JPATH_ADMINISTRATOR . '/components/com_fgsystemreport/assets/images/fg-logo.webp';
+
+            if (is_file($file) && filesize($file) < 65536) {
+                $data = @file_get_contents($file);
+
+                if ($data !== false) {
+                    $src = 'data:image/webp;base64,' . base64_encode($data);
+                }
+            }
+        }
+
+        return $src;
+    }
+
     private function fgHeader(): string
     {
         $h        = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
@@ -105,7 +130,7 @@ class FgHtmlView extends JoomlaHtmlView
         $identity = $app->getIdentity();
         $current  = (string) $app->getInput()->getCmd('view', 'fgsystemreport');
         $isAdmin  = $identity && $identity->authorise('core.admin', 'com_fgsystemreport');
-        $logo     = Uri::root(true) . '/administrator/components/com_fgsystemreport/assets/images/fg-logo.webp';
+        $logo     = $this->fgLogoSrc();
         $ver      = $this->fgVersion();
 
         $pill = '';
