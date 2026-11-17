@@ -28,6 +28,61 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.14.0]
+
+Ideas from a review of the free "Site Lens" extension (MedAmine Web, GPLv2+);
+the code is written from scratch and tuned on a copy of the real feed.
+
+### Changed - known vulnerable extensions (VEL)
+- The check now compares the **installed version** with the listing. Before,
+  it looked for the extension's name as a substring of the listing title and
+  never looked at versions, so it could report fixed problems and miss real
+  ones. The feed has no structured version fields, so a new `VelMatcher`
+  reads the range out of the title: a single version ("3.1.1 and all lower
+  versions"), "pre 8.7.0" / "before 4.2" (also one fix per branch: "pre 2.1.2
+  and pre 3.1.2"), "from 4.4.1 to 4.7.2", "all versions", and branch-only
+  entries ("3x"). Names are compared as compact keys (element names quoted in
+  the title, "Novarain/Tassos Framework" alternatives, the plugin folder
+  stripped from `plg_system_foo`); generic one-word names only give a
+  "possible" match.
+- A version inside a listed range is a **critical** finding (warning when only
+  a generic name matched); the note shows the VEL entry, your version and the
+  fixed version where the title names one.
+- Listings that cannot be compared (still open and no version in the title)
+  are reported in a separate check, "Vulnerable-extension listings to review",
+  so accepting that as a risk never hides a real hit.
+- The list is cached for 6 hours; when it cannot be downloaded, the last good
+  copy (kept 30 days) is used and the note says so, so a network problem does
+  not read as "nothing vulnerable". The download honours the proxy from
+  Global Configuration.
+
+### Fixed
+- The VEL check only ever checked the extension list when the dashboard had
+  passed one in; the Security page, report, PDF and CLI called it without a
+  list, so there it matched against nothing and showed "OK". It now loads the
+  installed extensions itself.
+- MFA check: backup codes alone no longer count as a second factor.
+
+### Added - Joomla settings checks
+- **User registration**: critical when new users land in a group with
+  back-end access; warning when open without a CAPTCHA or without activation.
+- **Minimum password length** below 12.
+- **File upload restrictions**: critical when dangerous types (`php`,
+  `phtml`, `phar`, `htaccess`, ...) are allowed in the media manager settings;
+  warning when "Restrict Uploads" is off.
+- **Text filters**: critical when a group without back-end access may save
+  unfiltered HTML.
+- **Default Super User names** (`admin`, `administrator`, `root`, ...).
+- **Action logs**: warning when the action log plugins are disabled.
+- **Joomla update channel**: warning for testing / custom channels.
+- 29 more tests (64 in total), including a fixture of real VEL entries.
+
+### Not tested live
+- The VEL matcher was tuned on a copy of the feed (463 entries, 2026-07-31);
+  the wiring into the Security Check, the cache of the list, and the option
+  names read from `com_media` (`upload_extensions`, `restrict_uploads`, ...)
+  have only been checked by syntax and unit tests, not on a running Joomla.
+
 ## [1.13.36]
 
 Intranet / hardened servers.

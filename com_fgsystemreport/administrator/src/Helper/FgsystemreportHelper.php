@@ -654,7 +654,9 @@ class FgsystemreportHelper
 		// 9) Extensions with available updates (core + third party)
 		$updCount = 0;
 
-		foreach ($precomputedExtensions ?? self::getInstalledExtensions(true) as $ext) {
+		$extensionList = $precomputedExtensions ?? self::getInstalledExtensions(true);
+
+		foreach ($extensionList as $ext) {
 			if ($ext->has_update) {
 				$updCount++;
 			}
@@ -711,7 +713,8 @@ class FgsystemreportHelper
 				try {
 					$idsWithMfa = $db->setQuery(
 						'SELECT DISTINCT user_id FROM ' . $db->quoteName('#__user_mfa')
-						. ' WHERE user_id IN (' . implode(',', $superUserIds) . ')'
+						. ' WHERE method <> ' . $db->quote('backupcodes')
+						. ' AND user_id IN (' . implode(',', $superUserIds) . ')'
 					)->loadColumn() ?: [];
 
 					$superUsersWithoutMfa = count(array_diff($superUserIds, $idsWithMfa));
@@ -934,59 +937,71 @@ class FgsystemreportHelper
 			$add('COM_FGSYSTEMREPORT_SEC_CONFIG', 'ok', Text::_('JNONE'), '');
 		}
 
-		// 16) Known vulnerable extensions (Joomla VEL) - best-effort name
-		// match against the official JSON feed. The feed's own extension
-		// identification is inconsistent free text (not a canonical
-		// element name), so a hit here is reported as a possible match to
-		// verify manually, never as a confirmed vulnerability.
+		// 16) Known vulnerable extensions (Joomla Vulnerable Extensions List).
+		// The list names an extension only in free text, so VelMatcher reduces
+		// names to keys and reads the version range out of the title. A
+		// version that is inside a listed range is a finding; a listing that
+		// cannot be compared (no version in the title) goes to a separate
+		// "review" check, so accepting that does not hide a real hit.
 		try {
-			$velMatches = [];
-			$velData    = self::fetchVelFeed();
+			$vel = self::velItems();
 
-			if ($velData !== null) {
-				$velLive = [];
-
-				if (!empty($velData['success']) && !empty($velData['data']['items'])) {
-					foreach ($velData['data']['items'] as $item) {
-						if (($item['status'] ?? '') === '1') {
-							$velLive[] = $item;
-						}
-					}
-				}
-
-				$installedNames = [];
-
-				foreach (($precomputedExtensions ?? []) as $ext) {
-					$name = trim((string) ($ext->name ?? ''));
-
-					// skip generic/short names - too likely to produce
-					// noise matches against free-text VEL titles
-					if (strlen($name) >= 6 && !preg_match('/^(mod_|plg_system_|com_)?(content|users|menus|search)$/i', $name)) {
-						$installedNames[$name] = true;
-					}
-				}
-
-				foreach ($velLive as $velItem) {
-					$title = strtolower((string) ($velItem['title'] ?? ''));
-
-					foreach (array_keys($installedNames) as $installedName) {
-						if (strlen($installedName) >= 6 && stripos($title, strtolower($installedName)) !== false) {
-							$velMatches[] = $installedName;
-						}
-					}
-				}
-
-				$velMatches = array_values(array_unique($velMatches));
-			}
-
-			if ($velData === null) {
+			if (!$vel['ok']) {
 				$add('COM_FGSYSTEMREPORT_SEC_VEL', 'info', Text::_('JNONE'),
 					Text::_('COM_FGSYSTEMREPORT_SEC_VEL_CHECK_FAILED'));
-			} elseif (!empty($velMatches)) {
-				$add('COM_FGSYSTEMREPORT_SEC_VEL', 'warning', (string) count($velMatches),
-					Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_POSSIBLE_MATCH', implode(', ', $velMatches)));
 			} else {
-				$add('COM_FGSYSTEMREPORT_SEC_VEL', 'ok', Text::_('JNONE'), '');
+				$matcher  = new VelMatcher($vel['items']);
+				$affected = [];
+				$review   = [];
+				$likely   = false;
+
+				foreach ($extensionList as $ext) {
+					if (!empty($ext->is_official) || !empty($ext->locked)) {
+						continue;
+					}
+
+					$names = array_values(array_unique(array_filter(
+						[(string) $ext->element, (string) ($ext->display_name ?? ''), (string) ($ext->name ?? '')],
+						static fn ($n) => $n !== ''
+					)));
+					$label = (string) ($ext->display_name ?? $ext->element);
+
+					foreach ($matcher->match($names, (string) ($ext->installed_version ?? '')) as $hit) {
+						$fix = $hit['fix'] === '' ? Text::_('COM_FGSYSTEMREPORT_SEC_VEL_NOFIX')
+							: (strpos($hit['fix'], '>') === 0
+								? Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_FIX_NEWER', substr($hit['fix'], 1))
+								: Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_FIX_IN', $hit['fix']));
+
+						if ($hit['state'] === 'affected') {
+							$affected[$hit['id']] = Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_ENTRY', $label,
+								(string) ($ext->installed_version ?? '-'), $hit['id'], $hit['title'], $fix);
+							$likely = $likely || $hit['confidence'] === 'likely';
+						} else {
+							$review[$hit['id']] = $label . ' ' . (string) ($ext->installed_version ?? '-')
+								. ' (VEL #' . $hit['id'] . ': ' . $hit['title'] . ')';
+						}
+					}
+				}
+
+				$more = static fn (array $list): string => implode('; ', array_slice($list, 0, 6))
+					. (count($list) > 6 ? ' ' . Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_MORE', count($list) - 6) : '');
+				$stale = $vel['stale']
+					? ' ' . Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_STALE', gmdate('Y-m-d H:i', (int) $vel['fetched']) . ' UTC')
+					: '';
+
+				if ($affected) {
+					$add('COM_FGSYSTEMREPORT_SEC_VEL', $likely ? 'danger' : 'warning', (string) count($affected),
+						Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_AFFECTED', $more(array_values($affected))) . $stale);
+				} else {
+					$add('COM_FGSYSTEMREPORT_SEC_VEL', 'ok', Text::_('JNONE'), trim($stale));
+				}
+
+				if ($review) {
+					$add('COM_FGSYSTEMREPORT_SEC_VEL_REVIEW', 'warning', (string) count($review),
+						Text::sprintf('COM_FGSYSTEMREPORT_SEC_VEL_REVIEW_FOUND', $more(array_values($review))));
+				} else {
+					$add('COM_FGSYSTEMREPORT_SEC_VEL_REVIEW', 'ok', Text::_('JNONE'), '');
+				}
 			}
 		} catch (\Throwable $e) {
 			$add('COM_FGSYSTEMREPORT_SEC_VEL', 'info', Text::_('JNONE'),
@@ -1316,6 +1331,12 @@ class FgsystemreportHelper
 				$add('COM_FGSYSTEMREPORT_SEC_PERSISTENCE', 'ok', '0',
 					$pers['partial'] ? Text::_('COM_FGSYSTEMREPORT_SEC_PERSISTENCE_PARTIAL') : '');
 			}
+		}
+
+		// 29d) Joomla settings that make attacks easier (registration, passwords,
+		// uploads, text filters, admin names, action logs, update channel)
+		foreach (ConfigAuditHelper::collect($superUsers ?? []) as $cfg) {
+			$add($cfg['key'], $cfg['status'], $cfg['value'], $cfg['note']);
 		}
 
 		// 30) PHP files under /images
@@ -1701,6 +1722,101 @@ class FgsystemreportHelper
 	}
 
 	/**
+	 * The Vulnerable Extensions List as a plain list, cached for 6 hours. When
+	 * the feed cannot be fetched the last good copy (kept for 30 days) is used
+	 * and reported as stale, so a network problem never reads as "nothing
+	 * vulnerable".
+	 *
+	 * @return  array{ok:bool,stale:bool,fetched:int,items:array<int,array{id:int,title:string,live:bool,created:string}>}
+	 *
+	 * @since   1.14.0
+	 */
+	public static function velItems(): array
+	{
+		$ttl   = 6 * 3600;
+		$cache = null;
+		$copy  = false;
+
+		try {
+			$cache = Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+				->createCacheController('output', ['defaultgroup' => 'com_fgsystemreport_vel', 'lifetime' => 43200, 'caching' => true]);
+			// kept as a JSON string: no dependence on how the cache handler serialises arrays
+			$copy  = $cache->get('vel-items');
+			$copy  = is_string($copy) ? json_decode($copy, true) : false;
+		} catch (\Throwable $e) {
+			$cache = null;
+		}
+
+		if (is_array($copy) && isset($copy['fetched'], $copy['items']) && time() - (int) $copy['fetched'] < $ttl) {
+			return ['ok' => true, 'stale' => false, 'fetched' => (int) $copy['fetched'], 'items' => (array) $copy['items']];
+		}
+
+		$items = [];
+		$data  = self::fetchVelFeed();
+
+		foreach ((array) ($data['data']['items'] ?? []) as $row) {
+			if (!is_array($row) || !isset($row['id'], $row['title'])) {
+				continue;
+			}
+
+			$items[] = [
+				'id'      => (int) $row['id'],
+				'title'   => (string) $row['title'],
+				'live'    => (string) ($row['status'] ?? '') === '1',
+				'created' => substr((string) ($row['created'] ?? ''), 0, 10),
+			];
+		}
+
+		if ($items) {
+			$now = time();
+
+			try {
+				if ($cache) {
+					$cache->store(json_encode(['fetched' => $now, 'items' => $items]), 'vel-items');
+				}
+			} catch (\Throwable $e) {
+				// not cached: fetched again next time
+			}
+
+			return ['ok' => true, 'stale' => false, 'fetched' => $now, 'items' => $items];
+		}
+
+		if (is_array($copy) && !empty($copy['items'])) {
+			return ['ok' => true, 'stale' => true, 'fetched' => (int) ($copy['fetched'] ?? 0), 'items' => (array) $copy['items']];
+		}
+
+		return ['ok' => false, 'stale' => false, 'fetched' => 0, 'items' => []];
+	}
+
+	/**
+	 * curl options for the proxy set in Joomla's Global Configuration (empty
+	 * when none is enabled). Intranet servers often reach the internet only
+	 * through it.
+	 *
+	 * @return  array<int,mixed>
+	 */
+	private static function proxyCurlOptions(): array
+	{
+		try {
+			$app = Factory::getApplication();
+
+			if ((int) $app->get('proxy_enable', 0) === 1 && (string) $app->get('proxy_host', '') !== '') {
+				$opts = [CURLOPT_PROXY => $app->get('proxy_host') . ':' . (int) $app->get('proxy_port', 8080)];
+
+				if ((string) $app->get('proxy_user', '') !== '') {
+					$opts[CURLOPT_PROXYUSERPWD] = $app->get('proxy_user') . ':' . $app->get('proxy_pass', '');
+				}
+
+				return $opts;
+			}
+		} catch (\Throwable $e) {
+			// no proxy settings available: connect directly
+		}
+
+		return [];
+	}
+
+	/**
 	 * Download the Joomla Vulnerable Extensions List feed with explicit limits:
 	 * connect timeout 3 s, total timeout 8 s, response capped at 4 MB, TLS
 	 * verified, HTTP 200 required. Without a timeout, file_get_contents()
@@ -1722,7 +1838,7 @@ class FgsystemreportHelper
 		$tooBig = false;
 		$ch     = curl_init($url);
 
-		curl_setopt_array($ch, [
+		curl_setopt_array($ch, self::proxyCurlOptions() + [
 			CURLOPT_HTTPGET        => true,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_CONNECTTIMEOUT => 3,
@@ -1985,19 +2101,7 @@ class FgsystemreportHelper
 			CURLOPT_SSL_VERIFYPEER => true,
 		];
 
-		try {
-			$app = Factory::getApplication();
-
-			if ((int) $app->get('proxy_enable', 0) === 1 && (string) $app->get('proxy_host', '') !== '') {
-				$opts[CURLOPT_PROXY] = $app->get('proxy_host') . ':' . (int) $app->get('proxy_port', 8080);
-
-				if ((string) $app->get('proxy_user', '') !== '') {
-					$opts[CURLOPT_PROXYUSERPWD] = $app->get('proxy_user') . ':' . $app->get('proxy_pass', '');
-				}
-			}
-		} catch (\Throwable $e) {
-			// no proxy settings available: connect directly
-		}
+		$opts += self::proxyCurlOptions();
 
 		curl_setopt_array($ch, $opts);
 		$response = curl_exec($ch);
