@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.4]
+
+### Changed - Security page
+- The theme headings are a pale grey band (9 % of the text colour over the
+  panel, so it is slightly darker than the surroundings in light mode and
+  lighter in dark mode); the accent colour stays only in the heading text.
+  The tinted fill of 1.18.3 was too strong.
+
 ## [1.18.3]
 
 ### Changed - Security page
