@@ -28,6 +28,13 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.2]
+
+### Changed - Security page
+- The theme headings are quieter: a neutral band slightly apart from the
+  check rows with the accent colour only in the text (no coloured stripe or
+  tinted fill). Light and dark mode.
+
 ## [1.18.1]
 
 ### Changed - Security page
