@@ -179,6 +179,28 @@ class FgsystemreportHelper
 	}
 
 	/**
+	 * Is the plugin installed and enabled?
+	 *
+	 * @since  1.17.0
+	 */
+	public static function pluginEnabled(string $folder, string $element): bool
+	{
+		try {
+			$db = Factory::getContainer()->get('DatabaseDriver');
+
+			return (int) $db->setQuery(
+				$db->getQuery(true)->select('COUNT(*)')->from($db->quoteName('#__extensions'))
+					->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+					->where($db->quoteName('folder') . ' = ' . $db->quote($folder))
+					->where($db->quoteName('element') . ' = ' . $db->quote($element))
+					->where($db->quoteName('enabled') . ' = 1')
+			)->loadResult() > 0;
+		} catch (\Throwable $e) {
+			return false;
+		}
+	}
+
+	/**
 	 * Is this extension part of Joomla itself (updated with the core)?
 	 * Protected extensions and those whose manifest author is the Joomla! Project.
 	 *
@@ -890,6 +912,10 @@ class FgsystemreportHelper
 			$phpIssues[] = 'expose_php=On';
 		}
 
+		if (HardeningHelper::iniOn(ini_get('allow_url_include'))) {
+			$phpIssues[] = 'allow_url_include=On';
+		}
+
 		$add('COM_FGSYSTEMREPORT_SEC_PHP_SETTINGS', empty($phpIssues) ? 'ok' : 'warning',
 			empty($phpIssues) ? Text::_('JNONE') : implode(', ', $phpIssues),
 			empty($phpIssues) ? '' : Text::_('COM_FGSYSTEMREPORT_SEC_PHP_SETTINGS_NOTE'));
@@ -902,6 +928,23 @@ class FgsystemreportHelper
 				ini_get('upload_max_filesize') ?: '?',
 				ini_get('open_basedir') !== '' ? Text::_('JYES') : Text::_('JNO')
 			), '');
+
+		// 14b) Functions that run programs on the server (informational)
+		$execOn = HardeningHelper::enabledExecFunctions((string) ini_get('disable_functions'));
+		$add('COM_FGSYSTEMREPORT_SEC_EXEC_FUNCTIONS', 'info',
+			$execOn ? Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXEC_FUNCTIONS_ON', count($execOn), count(HardeningHelper::EXEC_FUNCTIONS)) : Text::_('COM_FGSYSTEMREPORT_SEC_EXEC_FUNCTIONS_OFF'),
+			$execOn ? Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXEC_FUNCTIONS_NOTE', implode(', ', $execOn)) : '');
+
+		// 14c) Free disk space of the volume the site is on
+		$diskFree  = @disk_free_space(JPATH_ROOT);
+		$diskTotal = @disk_total_space(JPATH_ROOT);
+		$disk      = HardeningHelper::diskStatus($diskFree, $diskTotal);
+
+		if ($disk !== null) {
+			$add('COM_FGSYSTEMREPORT_SEC_DISK_FREE', $disk['status'],
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_DISK_FREE_VALUE', \Joomla\CMS\HTML\HTMLHelper::_('number.bytes', (int) $diskFree), $disk['percent']),
+				$disk['status'] === 'ok' ? '' : Text::_('COM_FGSYSTEMREPORT_SEC_DISK_FREE_NOTE'));
+		}
 
 		// 15) configuration.php: secret entropy/length, session handler,
 		// mailer type, offline status, SEF without .htaccess
@@ -1318,6 +1361,33 @@ class FgsystemreportHelper
 					Text::sprintf('COM_FGSYSTEMREPORT_SEC_HEADERS_MISSING', implode(', ', $missingHdr))
 					. self::headerHints($missingHdr));
 			}
+		}
+
+		// 29b2) Headers that name the software, and the optional Permissions-Policy
+		if ($home !== null) {
+			$fp = HardeningHelper::fingerprintHeaders($home);
+
+			if (!$fp) {
+				$add('COM_FGSYSTEMREPORT_SEC_FINGERPRINT', 'ok', Text::_('JNONE'), '');
+			} else {
+				$names = array_column($fp, 'name');
+				$note  = Text::_('COM_FGSYSTEMREPORT_SEC_FINGERPRINT_NOTE');
+
+				if (array_intersect($names, ['X-Content-Encoded-By', 'X-Generator']) && !self::pluginEnabled('system', 'fgremovegenerator')) {
+					$note .= ' ' . Text::_('COM_FGSYSTEMREPORT_SEC_FINGERPRINT_HINT_PLUGIN');
+				}
+
+				if (array_intersect($names, ['X-Powered-By', 'Server'])) {
+					$note .= ' ' . Text::_('COM_FGSYSTEMREPORT_SEC_FINGERPRINT_HINT_SERVER');
+				}
+
+				$add('COM_FGSYSTEMREPORT_SEC_FINGERPRINT', HardeningHelper::fingerprintStatus($fp),
+					implode(', ', array_map(static fn (array $f): string => $f['name'] . ': ' . $f['value'], $fp)), $note);
+			}
+
+			$add('COM_FGSYSTEMREPORT_SEC_PERMISSIONS_POLICY', HardeningHelper::hasPermissionsPolicy($home) ? 'ok' : 'info',
+				HardeningHelper::hasPermissionsPolicy($home) ? Text::_('JYES') : Text::_('JNO'),
+				HardeningHelper::hasPermissionsPolicy($home) ? '' : Text::_('COM_FGSYSTEMREPORT_SEC_PERMISSIONS_POLICY_MISSING'));
 		}
 
 		// 29c) Persistence directives in .htaccess / .user.ini / php.ini

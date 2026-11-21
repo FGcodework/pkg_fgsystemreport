@@ -28,6 +28,33 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.17.0]
+
+Four small checks from the SiteOps Suite review (point 3), written from scratch.
+
+### Added - Security Check
+- **Software named in response headers**: `X-Powered-By`, the Joomla
+  `X-Content-Encoded-By` / `X-Generator` headers and a `Server` header that
+  carries a version ("Apache/2.4.58"). A header that names a version is a
+  warning, a bare name information. The note says where each one is removed
+  and points to the FG Remove Generator plugin when it is not enabled.
+- **Permissions-Policy header**: information only (never lowers the score);
+  Feature-Policy also counts.
+- **allow_url_include** is added to the existing "PHP settings" check
+  (warning when On), and a new information row lists which of `exec`,
+  `shell_exec`, `system`, `passthru`, `proc_open`, `popen` are not in
+  `disable_functions`.
+- **Free disk space** of the volume the site is on: warning below 10 % or
+  500 MB, critical below 5 % or 100 MB. A hosting quota can be lower than the
+  volume; the note says so.
+- Certificate names were not added: the existing "SSL trust" check already
+  validates the host name.
+
+### Notes
+- Not tested on a live site. The decisions (which header counts, disk
+  thresholds, which functions are listed) are unit-tested (HardeningTest);
+  the wiring into the page is not.
+
 ## [1.16.3]
 
 ### Fixed - the cause of 1.16.0 - 1.16.2
