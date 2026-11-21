@@ -11,7 +11,6 @@ namespace Fg\Component\Fgsystemreport\Administrator\Helper;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Log\Log;
 
 /**
  * Core file check: storage of the result, how it is judged and the Security
@@ -245,11 +244,7 @@ final class CoreIntegrityHelper
 
     private static function log(string $what, \Throwable $e): void
     {
-        try {
-            Log::add('FG System Report core check (' . $what . '): ' . $e->getMessage(), Log::WARNING, 'com_fgsystemreport');
-        } catch (\Throwable $x) {
-            // logging is best effort
-        }
+        ChangeLogHelper::logError('core check ' . $what, $e);
     }
 
     /**

@@ -28,6 +28,15 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.16.2]
+
+### Fixed - "Entry points and configuration files" row missing
+- When the watch could not use its database table the row was left out
+  without a word. It is now always shown; if the table cannot be created or
+  read, the row is information and names the database error (also written
+  to `fgsystemreport_events.log` in the Joomla logs folder). The core file
+  check logs its database errors to the same file.
+
 ## [1.16.1]
 
 ### Fixed - core file check result not shown

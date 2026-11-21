@@ -51,6 +51,9 @@ final class CriticalFilesHelper
     /** @var bool|null */
     private static $tableReady = null;
 
+    /** @var string */
+    private static $tableError = '';
+
     // ------------------------------------------------------------------ pure
 
     /**
@@ -196,6 +199,8 @@ final class CriticalFilesHelper
             self::$tableReady = true;
         } catch (\Throwable $e) {
             self::$tableReady = false;
+            self::$tableError = $e->getMessage();
+            ChangeLogHelper::logError('criticalFiles table', $e);
         }
 
         return self::$tableReady;
@@ -235,12 +240,12 @@ final class CriticalFilesHelper
     /**
      * Compare, store, record the timeline and build the Security Check row.
      *
-     * @return  array{key:string,status:string,value:string,note:string}|null  null when the table cannot be used
+     * @return  array{key:string,status:string,value:string,note:string}  an information row naming the cause when the table cannot be used
      */
-    public static function collect(): ?array
+    public static function collect(): array
     {
         if (!self::ensureTable()) {
-            return null;
+            return self::unavailable(self::$tableError);
         }
 
         try {
@@ -338,7 +343,18 @@ final class CriticalFilesHelper
         } catch (\Throwable $e) {
             ChangeLogHelper::logError('criticalFiles', $e);
 
-            return null;
+            return self::unavailable($e->getMessage());
         }
+    }
+
+    /** The row when the watch cannot work: say why instead of leaving the row out. */
+    private static function unavailable(string $why): array
+    {
+        return [
+            'key'    => 'COM_FGSYSTEMREPORT_SEC_CRITICAL_FILES',
+            'status' => 'info',
+            'value'  => Text::_('COM_FGSYSTEMREPORT_SEC_CRITICAL_FILES_UNAVAILABLE'),
+            'note'   => Text::sprintf('COM_FGSYSTEMREPORT_SEC_CRITICAL_FILES_UNAVAILABLE_NOTE', mb_substr($why, 0, 300)),
+        ];
     }
 }

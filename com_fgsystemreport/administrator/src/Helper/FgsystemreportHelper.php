@@ -1346,9 +1346,7 @@ class FgsystemreportHelper
 
 		$critRow = CriticalFilesHelper::collect();
 
-		if ($critRow !== null) {
-			$add($critRow['key'], $critRow['status'], $critRow['value'], $critRow['note']);
-		}
+		$add($critRow['key'], $critRow['status'], $critRow['value'], $critRow['note']);
 
 		// 30) PHP files under /images
 		$php = ExtraChecksHelper::phpInImages();
