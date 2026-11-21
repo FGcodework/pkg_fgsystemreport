@@ -60,11 +60,11 @@ final class ChangeLogHelper
 	/**
 	 * Store one event. Identical events within a minute are stored once.
 	 *
-	 * @param   string  $type  install|update|uninstall|enable|disable|config|user
+	 * @param   string  $type  install|update|uninstall|enable|disable|config|user|file
 	 */
 	public static function record(string $type, string $subject, string $detail = ''): bool
 	{
-		if (!in_array($type, ['install', 'update', 'uninstall', 'enable', 'disable', 'config', 'user'], true) || !self::ensureTable()) {
+		if (!in_array($type, ['install', 'update', 'uninstall', 'enable', 'disable', 'config', 'user', 'file'], true) || !self::ensureTable()) {
 			return false;
 		}
 
@@ -114,12 +114,12 @@ final class ChangeLogHelper
 	}
 
 	/**
-	 * Display text of an event detail: codes such as "su_created" are
+	 * Display text of an event detail: codes such as "su_created" or "file_modified" are
 	 * translated, everything else (versions, config diffs) is shown as stored.
 	 */
 	public static function detailLabel(string $detail): string
 	{
-		if (!preg_match('/^su_[a-z_]+$/', $detail)) {
+		if (!preg_match('/^(?:su|file)_[a-z_]+$/', $detail)) {
 			return $detail;
 		}
 

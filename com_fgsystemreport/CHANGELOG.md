@@ -28,6 +28,49 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.16.0]
+
+Ideas from a review of the free "SiteOps Suite" (PharWeb, GPLv2+); the code is
+written from scratch. Only two of its ideas, both about files.
+
+### Added - Joomla core file check
+- New card on the Security page, **Joomla core files**: compares every file of
+  the Joomla core with the official update package of the installed version
+  (`Joomla_<version>-Stable-Update_Package.zip` from the joomla-cms release on
+  GitHub). The package is verified against the SHA-256 GitHub publishes for it
+  (asset digest, or the table in the release notes) before it is used, read
+  once into a list of MD5 fingerprints and deleted; the list is kept in
+  `<tmp>/fgsystemreport-core`, so the next check needs no download.
+- It runs in small steps from the browser (source, download, read package,
+  compare), so it does not depend on PHP time limits, and it can be resumed.
+  It starts from the button only - it downloads about 30 MB, so it never runs
+  on its own - and honours the proxy from Global Configuration.
+- The result (latest only) is a Security Check row, "Joomla core files": a
+  modified core PHP / JS file is **critical**, other differences (templates,
+  languages, CSS, missing files) are warnings, a result for another version or
+  older than 90 days is information. Compared files exclude the samples
+  (`htaccess.txt`, `web.config.txt`, `robots.txt.dist`, README, LICENSE), the
+  `installation` folder and empty `index.html` placeholders.
+- Only stable releases (x.y.z) have an official package; on a pre-release the
+  card says so.
+
+### Added - entry points and configuration files
+- New Security Check row, "Entry points and configuration files": watches
+  `index.php` (site, administrator, api), the `includes` framework files,
+  `configuration.php`, `.htaccess`, `web.config`, `.user.ini` and `php.ini`.
+  A SHA-1 of each is kept from the first Security Check on (that run only
+  records the baseline). A change is shown for 14 days: PHP entry points
+  **critical**, configuration and server files a warning. A change that
+  matches an extension / Joomla update or a Global Configuration save made at
+  about the same time is shown as information only.
+- Every change is also written to the change timeline (type "file").
+
+### Notes
+- Both rows can be accepted as a risk like any other check. Not tested on a
+  live Joomla site: the comparison engine was run against the real Joomla
+  5.4.1 package and by the unit tests (92 in all); the controller, AJAX loop,
+  table creation and the GitHub API response were not.
+
 ## [1.14.0]
 
 Ideas from a review of the free "Site Lens" extension (MedAmine Web, GPLv2+);

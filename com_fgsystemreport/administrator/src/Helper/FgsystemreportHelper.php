@@ -1339,6 +1339,17 @@ class FgsystemreportHelper
 			$add($cfg['key'], $cfg['status'], $cfg['value'], $cfg['note']);
 		}
 
+		// 29e) Core files against the official package (result of the check started
+		// from the Security page) and the files an attacker changes first
+		$coreRow = CoreIntegrityHelper::securityRow();
+		$add($coreRow['key'], $coreRow['status'], $coreRow['value'], $coreRow['note']);
+
+		$critRow = CriticalFilesHelper::collect();
+
+		if ($critRow !== null) {
+			$add($critRow['key'], $critRow['status'], $critRow['value'], $critRow['note']);
+		}
+
 		// 30) PHP files under /images
 		$php = ExtraChecksHelper::phpInImages();
 
@@ -1795,7 +1806,7 @@ class FgsystemreportHelper
 	 *
 	 * @return  array<int,mixed>
 	 */
-	private static function proxyCurlOptions(): array
+	public static function proxyCurlOptions(): array
 	{
 		try {
 			$app = Factory::getApplication();

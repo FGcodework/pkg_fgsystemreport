@@ -15,6 +15,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\View\FgHtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\CoreIntegrityHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\HistoryHelper;
 
@@ -27,6 +28,9 @@ class HtmlView extends BaseHtmlView
 {
     /** @var array Security check results */
     public $checks = [];
+
+    /** @var array|null Latest core file check result (see CoreIntegrityHelper) */
+    public $core = null;
 
     /**
      * Display the view
@@ -59,6 +63,8 @@ class HtmlView extends BaseHtmlView
         if ($forceRefresh || $stale || HistoryHelper::isEmpty()) {
             HistoryHelper::record($this->checks, 'manual');
         }
+
+        $this->core = CoreIntegrityHelper::latest();
 
         $this->addToolbar();
         parent::display($tpl);

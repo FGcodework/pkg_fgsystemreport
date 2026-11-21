@@ -10,6 +10,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\CoreIntegrityHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
 
 $checks = $this->checks ?? [];
@@ -27,6 +28,8 @@ foreach ($checks as $c) {
         $counts[$c->status]++;
     }
 }
+$core     = $this->core ?? null;
+$coreEval = CoreIntegrityHelper::evaluate($core, JVERSION, time());
 $sc       = FgsystemreportHelper::calculateSecurityScore($checks);
 $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCount > 0 || $sc->score < 90 ? 'is-warn' : 'is-ok');
 ?>
@@ -62,6 +65,44 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                 <span class="icon-download me-1" aria-hidden="true"></span>JSON
             </a>
             </div>
+        </div>
+    </div>
+    <div class="card mb-3" id="fgsr-core">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <div>
+                    <strong><?php echo Text::_('COM_FGSYSTEMREPORT_CORE_TITLE'); ?></strong>
+                    <div class="small text-muted">
+                        <?php if ($coreEval['code'] === 'never') : ?>
+                            <?php echo Text::_('COM_FGSYSTEMREPORT_CORE_NEVER'); ?>
+                        <?php else : ?>
+                            <?php echo Text::sprintf('COM_FGSYSTEMREPORT_CORE_LAST', $this->escape((string) $core['version']), HTMLHelper::_('date', gmdate('Y-m-d H:i:s', (int) $core['time']), Text::_('DATE_FORMAT_LC5')), (int) $core['checked'], (int) $core['nModified'], (int) $core['nMissing']); ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="fgsr-core-run">
+                    <span class="icon-refresh me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_CORE_RUN'); ?>
+                </button>
+            </div>
+            <div class="progress mt-2 d-none" id="fgsr-core-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" style="width:0%"></div></div>
+            <div class="small mt-2" id="fgsr-core-msg" aria-live="polite"></div>
+            <p class="small text-muted mt-2 mb-0"><?php echo Text::_('COM_FGSYSTEMREPORT_CORE_EXPLAIN'); ?></p>
+            <?php if ($core && ($core['nModified'] || $core['nMissing']) && $core['version'] === JVERSION) : ?>
+                <details class="mt-2">
+                    <summary class="small" style="cursor:pointer;"><?php echo Text::_('COM_FGSYSTEMREPORT_CORE_FILES_LIST'); ?></summary>
+                    <?php if ($core['modified']) : ?>
+                        <div class="small fw-bold mt-2"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_CORE_MODIFIED_HEAD', (int) $core['nModified']); ?></div>
+                        <ul class="small mb-1" style="max-height:260px;overflow:auto;"><?php foreach ($core['modified'] as $f) : ?><li><code><?php echo $this->escape($f); ?></code></li><?php endforeach; ?></ul>
+                    <?php endif; ?>
+                    <?php if ($core['missing']) : ?>
+                        <div class="small fw-bold mt-2"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_CORE_MISSING_HEAD', (int) $core['nMissing']); ?></div>
+                        <ul class="small mb-1" style="max-height:260px;overflow:auto;"><?php foreach ($core['missing'] as $f) : ?><li><code><?php echo $this->escape($f); ?></code></li><?php endforeach; ?></ul>
+                    <?php endif; ?>
+                    <?php if ($core['nModified'] > count($core['modified']) || $core['nMissing'] > count($core['missing'])) : ?>
+                        <div class="small text-muted"><?php echo Text::sprintf('COM_FGSYSTEMREPORT_CORE_LIST_CAPPED', 500); ?></div>
+                    <?php endif; ?>
+                </details>
+            <?php endif; ?>
         </div>
     </div>
     <div class="card"><div class="card-body p-0">
@@ -123,5 +164,45 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
         </table>
     </div></div>
 </div>
+
+<script>
+(function () {
+    var btn = document.getElementById('fgsr-core-run');
+    if (!btn || !window.fetch) { return; }
+    var bar = document.getElementById('fgsr-core-progress'), msg = document.getElementById('fgsr-core-msg');
+    var token = <?php echo json_encode(\Joomla\CMS\Session\Session::getFormToken()); ?>;
+    var url = 'index.php?option=com_fgsystemreport&task=coreintegrity.step&format=json';
+    var after = 'index.php?option=com_fgsystemreport&view=security&force=1&' + token + '=1';
+    var failed = <?php echo json_encode(Text::_('COM_FGSYSTEMREPORT_CORE_ERR_REQUEST')); ?>;
+    var started = false;
+    function show(text, bad) { msg.textContent = text; msg.className = 'small mt-2' + (bad ? ' text-danger' : ''); }
+    function progress(p) {
+        bar.classList.remove('d-none');
+        bar.setAttribute('aria-valuenow', p);
+        bar.firstElementChild.style.width = p + '%';
+    }
+    function call(fresh) {
+        var fd = new FormData();
+        fd.append(token, '1');
+        if (fresh) { fd.append('fresh', '1'); }
+        return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    }
+    function loop(fresh) {
+        call(fresh).then(function (d) {
+            progress(d.progress || 0);
+            if (d.error) { show(d.message, true); btn.disabled = false; return; }
+            show(d.message, false);
+            if (d.done) { window.location.href = after; return; }
+            loop(false);
+        }).catch(function () { show(failed, true); btn.disabled = false; });
+    }
+    btn.addEventListener('click', function () {
+        btn.disabled = true;
+        progress(0);
+        show('', false);
+        loop(true);
+    });
+})();
+</script>
 
 <?php BusyHelper::render(); ?>
