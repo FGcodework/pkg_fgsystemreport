@@ -197,7 +197,7 @@ final class CoreIntegrityHelper
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
             $db->setQuery('DELETE FROM ' . $db->quoteName(self::TABLE))->execute();
-            $db->insertObject(self::TABLE, (object) [
+            $row = (object) [
                 'checked_at' => Factory::getDate((int) ($result['time'] ?? time()))->toSql(),
                 'version'    => mb_substr((string) ($result['version'] ?? ''), 0, 32),
                 'source'     => mb_substr((string) ($result['source'] ?? ''), 0, 16),
@@ -206,7 +206,8 @@ final class CoreIntegrityHelper
                 'n_modified' => (int) ($result['nModified'] ?? 0),
                 'n_missing'  => (int) ($result['nMissing'] ?? 0),
                 'details'    => (string) json_encode(['modified' => array_values((array) ($result['modified'] ?? [])), 'missing' => array_values((array) ($result['missing'] ?? []))], JSON_UNESCAPED_SLASHES),
-            ]);
+            ];
+            $db->insertObject(self::TABLE, $row);
 
             return true;
         } catch (\Throwable $e) {

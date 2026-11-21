@@ -259,10 +259,11 @@ final class CriticalFilesHelper
             // First run: take the files as they are, report nothing.
             if (!$rows) {
                 foreach ($now as $rel => $cur) {
-                    $db->insertObject(self::TABLE, (object) [
+                    $row = (object) [
                         'path' => $rel, 'hash' => $cur['hash'] ?? '', 'mtime' => (int) ($cur['mtime'] ?? 0), 'seen_at' => $sql,
                         'change_type' => '', 'changed_at' => null, 'expected' => 0,
-                    ], 'path');
+                    ];
+                    $db->insertObject(self::TABLE, $row, 'path');
                 }
 
                 return ['key' => $key, 'status' => 'ok', 'value' => Text::sprintf('COM_FGSYSTEMREPORT_SEC_CRITICAL_FILES_BASELINE', \count(array_filter($now))), 'note' => ''];
@@ -305,10 +306,11 @@ final class CriticalFilesHelper
                 // paths of the list that were never stored (list grew): take them as they are
                 foreach ($now as $rel => $cur) {
                     if (!isset($rows[$rel])) {
-                        $db->insertObject(self::TABLE, (object) [
+                        $row = (object) [
                             'path' => $rel, 'hash' => $cur['hash'] ?? '', 'mtime' => (int) ($cur['mtime'] ?? 0), 'seen_at' => $sql,
                             'change_type' => '', 'changed_at' => null, 'expected' => 0,
-                        ], 'path');
+                        ];
+                        $db->insertObject(self::TABLE, $row, 'path');
                     }
                 }
             }

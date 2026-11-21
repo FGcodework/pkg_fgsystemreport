@@ -28,6 +28,15 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.16.3]
+
+### Fixed - the cause of 1.16.0 - 1.16.2
+- `insertObject()` takes its object by reference; the core file check and the
+  critical files watch passed an object literal, which PHP refuses ("could not
+  be passed by reference"). So the core check result was never stored in the
+  database and the critical files baseline could not be written. Both now pass
+  a variable.
+
 ## [1.16.2]
 
 ### Fixed - "Entry points and configuration files" row missing
