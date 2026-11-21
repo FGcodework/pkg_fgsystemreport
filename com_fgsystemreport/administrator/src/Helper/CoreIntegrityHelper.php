@@ -11,6 +11,7 @@ namespace Fg\Component\Fgsystemreport\Administrator\Helper;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 
 /**
  * Core file check: storage of the result, how it is judged and the Security
@@ -35,6 +36,12 @@ final class CoreIntegrityHelper
 
     /** @var bool|null */
     private static $tableReady = null;
+
+    /** @var string */
+    private static $tableError = '';
+
+    /** @var string  Why the last save to the database failed ('' = it did not). */
+    public static $lastError = '';
 
     // ------------------------------------------------------------------ pure
 
@@ -133,7 +140,14 @@ final class CoreIntegrityHelper
         $r = self::engine()->step(8.0);
 
         if ($r['done'] && $r['result'] !== null) {
-            self::save($r['result']);
+            $inDb   = self::save($r['result']);
+            $inFile = self::saveFile($r['result']);
+
+            // the result is kept in the database and in a file next to the fingerprints;
+            // only when neither worked is the check reported as failed
+            if (!$inDb && !$inFile) {
+                $r['error'] = 'save';
+            }
         }
 
         return $r;
@@ -167,6 +181,8 @@ final class CoreIntegrityHelper
             self::$tableReady = true;
         } catch (\Throwable $e) {
             self::$tableReady = false;
+            self::$tableError = $e->getMessage();
+            self::log('table', $e);
         }
 
         return self::$tableReady;
@@ -195,12 +211,67 @@ final class CoreIntegrityHelper
 
             return true;
         } catch (\Throwable $e) {
+            self::$lastError = $e->getMessage();
+            self::log('save', $e);
+
             return false;
         }
     }
 
-    /** @return  array|null  same layout the engine returns as "result" */
+    // ------------------------------------------------------------------ file copy of the result
+
+    private static function resultFile(): string
+    {
+        return self::workDir() . '/core-result.json';
+    }
+
+    /** A copy of the result next to the fingerprints: the check still shows if the database refuses it. */
+    private static function saveFile(array $result): bool
+    {
+        try {
+            return is_dir(self::workDir()) && @file_put_contents(self::resultFile(), json_encode($result, JSON_UNESCAPED_SLASHES), LOCK_EX) !== false;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private static function latestFile(): ?array
+    {
+        $f = self::resultFile();
+        $d = is_file($f) ? json_decode((string) @file_get_contents($f), true) : null;
+
+        return \is_array($d) && isset($d['version'], $d['time']) ? $d : null;
+    }
+
+    private static function log(string $what, \Throwable $e): void
+    {
+        try {
+            Log::add('FG System Report core check (' . $what . '): ' . $e->getMessage(), Log::WARNING, 'com_fgsystemreport');
+        } catch (\Throwable $x) {
+            // logging is best effort
+        }
+    }
+
+    /**
+     * The latest result: the database row, or the file copy when the database has none
+     * (or a more recent file exists).
+     *
+     * @return  array|null  same layout the engine returns as "result"
+     */
     public static function latest(): ?array
+    {
+        $db   = self::latestDb();
+        $file = self::latestFile();
+
+        if ($db === null) {
+            return $file;
+        }
+
+        return $file !== null && (int) $file['time'] > (int) $db['time'] ? $file : $db;
+    }
+
+    /** @return  array|null */
+    private static function latestDb(): ?array
     {
         if (!self::ensureTable()) {
             return null;

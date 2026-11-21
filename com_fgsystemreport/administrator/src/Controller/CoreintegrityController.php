@@ -53,7 +53,9 @@ class CoreintegrityController extends BaseController
             'progress' => $r['progress'],
             'done'     => $r['done'],
             'error'    => $r['error'],
-            'message'  => $r['error'] ? Text::_('COM_FGSYSTEMREPORT_CORE_ERR_' . strtoupper($r['error'])) : Text::_('COM_FGSYSTEMREPORT_CORE_PHASE_' . strtoupper($r['phase'])),
+            'message'  => $r['error']
+                ? Text::_('COM_FGSYSTEMREPORT_CORE_ERR_' . strtoupper($r['error'])) . ($r['error'] === 'save' && CoreIntegrityHelper::$lastError !== '' ? ' (' . CoreIntegrityHelper::$lastError . ')' : '')
+                : Text::_('COM_FGSYSTEMREPORT_CORE_PHASE_' . strtoupper($r['phase'])),
         ]);
     }
 

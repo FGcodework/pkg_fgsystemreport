@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.16.1]
+
+### Fixed - core file check result not shown
+- After a finished core file check the Security Check could still say "not
+  checked". The result is now also kept in a file next to the fingerprints
+  (`core-result.json`) and read from there when the database has no row; when
+  neither can be written the check ends with an error that names the cause
+  instead of a silent success. Database errors of the check are logged
+  (category `com_fgsystemreport`).
+
 ## [1.16.0]
 
 Ideas from a review of the free "SiteOps Suite" (PharWeb, GPLv2+); the code is
