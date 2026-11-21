@@ -28,6 +28,15 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.17.1]
+
+Idea from a review of the free "AGuard Safe" (AGuard.lt, GPLv2+).
+
+### Changed - mail DNS check
+- A DMARC record with `p=none` is now shown as information with a note
+  (it only asks receivers for reports; mail that fails is still delivered).
+  Before, any DMARC record counted as fine. The score is not affected.
+
 ## [1.17.0]
 
 Four small checks from the SiteOps Suite review (point 3), written from scratch.

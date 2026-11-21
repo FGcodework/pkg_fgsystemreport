@@ -82,4 +82,13 @@ return [
         assertSame(null, H::diskStatus(-1, 100));
         assertSame(null, H::diskStatus(null, null));
     },
+
+    'DMARC p=none is monitoring only' => function () {
+        assertTrue(H::dmarcMonitorOnly('none'));
+        assertTrue(H::dmarcMonitorOnly('NONE'));
+        assertTrue(H::dmarcMonitorOnly(' none '));
+        assertSame(false, H::dmarcMonitorOnly('quarantine'));
+        assertSame(false, H::dmarcMonitorOnly('reject'));
+        assertSame(false, H::dmarcMonitorOnly(''));
+    },
 ];

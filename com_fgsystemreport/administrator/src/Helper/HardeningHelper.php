@@ -119,4 +119,18 @@ final class HardeningHelper
 
         return ['status' => $status, 'percent' => $percent];
     }
+
+    /**
+     * Is the DMARC policy "none"? Such a record only asks receivers for reports;
+     * mail that fails the checks is still delivered, so nobody is stopped from
+     * sending as this domain.
+     *
+     * @param   string  $policy  value of p= as read from DNS ('' = not found)
+     *
+     * @since   1.17.1
+     */
+    public static function dmarcMonitorOnly(string $policy): bool
+    {
+        return strtolower(trim($policy)) === 'none';
+    }
 }

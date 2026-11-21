@@ -1307,6 +1307,9 @@ class FgsystemreportHelper
 			if ($miss) {
 				$add('COM_FGSYSTEMREPORT_SEC_MAIL_DNS', 'warning', $value,
 					Text::sprintf('COM_FGSYSTEMREPORT_SEC_MAIL_DNS_MISSING', implode(' + ', $miss), $mail['host']));
+			} elseif (HardeningHelper::dmarcMonitorOnly($mail['policy'])) {
+				// DMARC exists but only reports: a start, not protection (information, never lowers the score)
+				$add('COM_FGSYSTEMREPORT_SEC_MAIL_DNS', 'info', $value, Text::sprintf('COM_FGSYSTEMREPORT_SEC_MAIL_DNS_MONITOR_ONLY', $mail['host']));
 			} else {
 				$add('COM_FGSYSTEMREPORT_SEC_MAIL_DNS', 'ok', $value, '');
 			}
