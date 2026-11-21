@@ -28,6 +28,13 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.3]
+
+### Changed - Security page
+- The theme headings get a faint accent tint (12 % blended into the soft
+  background) so the band no longer merges with the surroundings; still no
+  stripe, in light and dark mode.
+
 ## [1.18.2]
 
 ### Changed - Security page

@@ -166,10 +166,11 @@ a.fgsr-pill:hover { border-color: var(--fg-border-hover); transform: translateY(
 .fgsr .table-warning > * { background-color: var(--fg-amber-soft) !important; color: var(--fg-text) !important; }
 .fgsr .table-success > * { background-color: var(--fg-green-soft) !important; color: var(--fg-text) !important; }
 .fgsr .table-active > * { background-color: var(--fg-accent-soft) !important; color: var(--fg-text) !important; }
-/* theme headings on the Security page: a quiet neutral band, the accent only in the text */
+/* theme headings on the Security page: a soft accent-tinted band, no stripe */
 .fgsr .table > tbody > tr.fgsr-group > th,
 .fgsr .table-hover > tbody > tr.fgsr-group:hover > th {
-  background-color: var(--fg-bg-soft);
+  background-color: var(--fg-accent-soft);
+  background-color: color-mix(in srgb, var(--fg-accent) 12%, var(--fg-bg-soft));
   color: var(--fg-accent-strong);
   border-left: 0;
   padding: 10px 14px;
