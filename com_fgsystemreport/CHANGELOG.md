@@ -28,6 +28,14 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.1]
+
+### Changed - Security page
+- The theme headings are now a solid accent-coloured band (accent stripe on
+  the left, upper-case blue text, counts of critical / warning rows) so they
+  stand apart from the check rows, in light and dark mode. The jump buttons
+  above the table are rounded to match.
+
 ## [1.18.0]
 
 ### Changed - Security page grouped by theme

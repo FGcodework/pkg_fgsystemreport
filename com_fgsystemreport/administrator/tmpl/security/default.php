@@ -107,7 +107,7 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
             <?php endif; ?>
         </div>
     </div>
-    <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SECGROUP_NAV')); ?>">
+    <nav class="fgsr-group-nav d-flex flex-wrap gap-2 mb-2" aria-label="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SECGROUP_NAV')); ?>">
         <?php foreach ($groups as $gid => $rows) : $n = SecurityGroupHelper::counts($rows); ?>
             <a class="btn btn-sm btn-outline-secondary" href="#fgsr-g-<?php echo $gid; ?>">
                 <?php echo Text::_('COM_FGSYSTEMREPORT_SECGROUP_' . strtoupper($gid)); ?>
@@ -129,10 +129,10 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
             </thead>
             <?php foreach ($groups as $gid => $rows) : $n = SecurityGroupHelper::counts($rows); ?>
             <tbody>
-                <tr id="fgsr-g-<?php echo $gid; ?>">
-                    <th colspan="4" class="bg-body-tertiary">
+                <tr id="fgsr-g-<?php echo $gid; ?>" class="fgsr-group">
+                    <th colspan="4">
                         <?php echo Text::_('COM_FGSYSTEMREPORT_SECGROUP_' . strtoupper($gid)); ?>
-                        <span class="text-muted fw-normal small">(<?php echo (int) $n['total']; ?>)</span>
+                        <span class="fgsr-group-count">(<?php echo (int) $n['total']; ?>)</span>
                         <?php if ($n['danger']) : ?><span class="badge bg-danger ms-1"><?php echo (int) $n['danger']; ?></span><?php endif; ?>
                         <?php if ($n['warning']) : ?><span class="badge bg-warning text-dark ms-1"><?php echo (int) $n['warning']; ?></span><?php endif; ?>
                     </th>

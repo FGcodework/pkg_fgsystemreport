@@ -166,6 +166,26 @@ a.fgsr-pill:hover { border-color: var(--fg-border-hover); transform: translateY(
 .fgsr .table-warning > * { background-color: var(--fg-amber-soft) !important; color: var(--fg-text) !important; }
 .fgsr .table-success > * { background-color: var(--fg-green-soft) !important; color: var(--fg-text) !important; }
 .fgsr .table-active > * { background-color: var(--fg-accent-soft) !important; color: var(--fg-text) !important; }
+/* theme headings on the Security page: a solid accent band, clearly apart from the check rows */
+.fgsr .table > tbody > tr.fgsr-group > th,
+.fgsr .table-hover > tbody > tr.fgsr-group:hover > th {
+  background-color: var(--fg-accent-soft);
+  background-color: color-mix(in srgb, var(--fg-accent) 20%, transparent);
+  color: var(--fg-accent-strong);
+  border-left: 4px solid var(--fg-accent);
+  border-top: 1px solid var(--fg-border);
+  border-bottom: 1px solid var(--fg-border);
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.fgsr .table > tbody > tr.fgsr-group .fgsr-group-count { color: var(--fg-muted); font-weight: 500; letter-spacing: 0; text-transform: none; }
+.fgsr nav.fgsr-group-nav .btn { border-color: var(--fg-border-hover); color: var(--fg-text); border-radius: 999px; }
+.fgsr nav.fgsr-group-nav .btn:hover { background: var(--fg-accent-soft); color: var(--fg-accent-strong); border-color: var(--fg-accent); }
 .fgsr .table-responsive { border-radius: 0; }
 
 /* ---------- badges ---------- */
