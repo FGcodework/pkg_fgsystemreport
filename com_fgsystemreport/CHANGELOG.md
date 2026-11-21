@@ -28,6 +28,20 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.0]
+
+### Changed - Security page grouped by theme
+- The list of checks is no longer one long table: the rows are sorted into
+  seven themes - updates and known vulnerabilities, files and integrity,
+  accounts and access, HTTPS and browser protection, PHP and server, Joomla
+  configuration, database / mail / operation. Each theme has a heading with
+  the number of critical and warning rows, and a row of buttons above the
+  table jumps to it.
+- Display only: the checks, their order inside a theme, the score, the
+  history, the exports and the notification e-mails are unchanged. A check
+  that has no theme yet would appear under "Other"; a unit test fails until
+  every check is given one.
+
 ## [1.17.1]
 
 Idea from a review of the free "AGuard Safe" (AGuard.lt, GPLv2+).

@@ -12,8 +12,10 @@ use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\BusyHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\CoreIntegrityHelper;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\SecurityGroupHelper;
 
 $checks = $this->checks ?? [];
+$groups = SecurityGroupHelper::group($checks);
 
 $badge = [
     'ok'      => ['bg-success',   'COM_FGSYSTEMREPORT_SEC_STATUS_OK'],
@@ -105,6 +107,16 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
             <?php endif; ?>
         </div>
     </div>
+    <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_SECGROUP_NAV')); ?>">
+        <?php foreach ($groups as $gid => $rows) : $n = SecurityGroupHelper::counts($rows); ?>
+            <a class="btn btn-sm btn-outline-secondary" href="#fgsr-g-<?php echo $gid; ?>">
+                <?php echo Text::_('COM_FGSYSTEMREPORT_SECGROUP_' . strtoupper($gid)); ?>
+                <?php if ($n['danger']) : ?><span class="badge bg-danger"><?php echo (int) $n['danger']; ?></span><?php endif; ?>
+                <?php if ($n['warning']) : ?><span class="badge bg-warning text-dark"><?php echo (int) $n['warning']; ?></span><?php endif; ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+
     <div class="card"><div class="card-body p-0">
         <table class="table table-sm table-hover m-0">
             <thead>
@@ -115,8 +127,17 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                     <th style="width:35%;"><?php echo Text::_('COM_FGSYSTEMREPORT_SEC_COL_NOTE'); ?></th>
                 </tr>
             </thead>
+            <?php foreach ($groups as $gid => $rows) : $n = SecurityGroupHelper::counts($rows); ?>
             <tbody>
-            <?php foreach ($checks as $check) : ?>
+                <tr id="fgsr-g-<?php echo $gid; ?>">
+                    <th colspan="4" class="bg-body-tertiary">
+                        <?php echo Text::_('COM_FGSYSTEMREPORT_SECGROUP_' . strtoupper($gid)); ?>
+                        <span class="text-muted fw-normal small">(<?php echo (int) $n['total']; ?>)</span>
+                        <?php if ($n['danger']) : ?><span class="badge bg-danger ms-1"><?php echo (int) $n['danger']; ?></span><?php endif; ?>
+                        <?php if ($n['warning']) : ?><span class="badge bg-warning text-dark ms-1"><?php echo (int) $n['warning']; ?></span><?php endif; ?>
+                    </th>
+                </tr>
+            <?php foreach ($rows as $check) : ?>
                 <?php
                     [$cls, $key] = $badge[$check->status] ?? $badge['info'];
                     $rowClass = $check->status === 'danger' ? 'table-danger' : ($check->status === 'warning' ? 'table-warning' : '');
@@ -161,6 +182,7 @@ $scState  = $sc->dangerCount > 0 || $sc->score < 60 ? 'is-bad' : ($sc->warningCo
                 </tr>
             <?php endforeach; ?>
             </tbody>
+            <?php endforeach; ?>
         </table>
     </div></div>
 </div>
