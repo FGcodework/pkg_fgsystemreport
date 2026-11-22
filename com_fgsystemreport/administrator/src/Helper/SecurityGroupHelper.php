@@ -39,7 +39,7 @@ final class SecurityGroupHelper
         // accounts and access
         'SUPERUSERS' => 'access', 'SUPERUSERS_NEW' => 'access', 'MFA' => 'access', 'FAILED_LOGINS' => 'access',
         'ADMIN_NAMES' => 'access', 'REGISTRATION' => 'access', 'PASSWORD_LENGTH' => 'access', 'ACTIONLOGS' => 'access',
-        'TEXT_FILTERS' => 'access',
+        'TEXT_FILTERS' => 'access', 'FIREWALL' => 'access',
         // HTTPS and browser protection
         'FORCE_SSL' => 'transport', 'SSL_CERT' => 'transport', 'SSL_TRUST' => 'transport', 'HSTS' => 'transport',
         'HEADERS' => 'transport', 'FINGERPRINT' => 'transport', 'PERMISSIONS_POLICY' => 'transport',

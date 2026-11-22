@@ -195,7 +195,7 @@ final class ExtraChecksHelper
 			CURLOPT_CONNECTTIMEOUT => 4,
 			CURLOPT_SSL_VERIFYPEER => $verify,
 			CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
-			CURLOPT_USERAGENT      => 'FG System Report',
+			CURLOPT_USERAGENT      => FgsystemreportHelper::selfUserAgent(),
 			CURLOPT_HEADERFUNCTION => static function ($ch, $line) use (&$headers) {
 				if (stripos($line, 'HTTP/') === 0) {
 					$headers = []; // a new response (redirect hop): forget the previous one

@@ -201,6 +201,52 @@ class FgsystemreportHelper
 	}
 
 	/**
+	 * Installed system plugins that act as a firewall, enabled and disabled.
+	 *
+	 * @return  array{active:list<string>,disabled:list<string>}
+	 *
+	 * @since   1.18.5
+	 */
+	public static function firewallPlugins(): array
+	{
+		try {
+			$db   = Factory::getContainer()->get('DatabaseDriver');
+			$rows = $db->setQuery(
+				$db->getQuery(true)->select([$db->quoteName('element'), $db->quoteName('enabled')])
+					->from($db->quoteName('#__extensions'))
+					->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+					->where($db->quoteName('folder') . ' = ' . $db->quote('system'))
+					->where($db->quoteName('element') . ' IN (' . implode(',', array_map([$db, 'quote'], array_keys(HardeningHelper::FIREWALL_PLUGINS))) . ')')
+			)->loadAssocList();
+
+			return HardeningHelper::firewallsFromPlugins($rows ?: []);
+		} catch (\Throwable $e) {
+			return ['active' => [], 'disabled' => []];
+		}
+	}
+
+	/**
+	 * User-Agent for the requests this component sends to its own site
+	 * ("FG-System-Report/1.18.5 (self-check)").
+	 *
+	 * @since  1.18.5
+	 */
+	public static function selfUserAgent(): string
+	{
+		static $ua = null;
+
+		if ($ua === null) {
+			try {
+				$ua = HardeningHelper::userAgent(self::getOwnVersion());
+			} catch (\Throwable $e) {
+				$ua = HardeningHelper::userAgent('');
+			}
+		}
+
+		return $ua;
+	}
+
+	/**
 	 * Is this extension part of Joomla itself (updated with the core)?
 	 * Protected extensions and those whose manifest author is the Joomla! Project.
 	 *
@@ -481,9 +527,34 @@ class FgsystemreportHelper
 		} elseif (!empty($exposedCheck->exposed)) {
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'danger', (string) count($exposedCheck->exposed),
 				Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_FOUND', implode(', ', $exposedCheck->exposed)));
+		} elseif (!empty($exposedCheck->blocked)) {
+			// The firewall refused some probes (it takes them for a scanner): those files were never looked at
+			$fw = implode(', ', array_unique(array_values($exposedCheck->blocked)));
+			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED_VALUE', $fw),
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED', implode(', ', array_keys($exposedCheck->blocked)), $fw,
+					!empty($_SERVER['SERVER_ADDR']) ? ' (' . $_SERVER['SERVER_ADDR'] . ')' : ''));
 		} else {
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'ok', Text::_('JNONE'),
 				Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_NONE'));
+		}
+
+		// 3c) Web application firewall: a Joomla extension (SiteOps Suite, Admin Tools ...) or
+		// a CDN / proxy in front of the site (named by its response headers)
+		$fwPlugins = self::firewallPlugins();
+		$fwNames   = $fwPlugins['active'];
+		$fwHeader  = ExtraChecksHelper::homeHeaders() ? HardeningHelper::firewallFromHeaders(ExtraChecksHelper::homeHeaders()) : '';
+
+		if ($fwHeader !== '') {
+			$fwNames[] = $fwHeader;
+		}
+
+		if ($fwNames) {
+			$add('COM_FGSYSTEMREPORT_SEC_FIREWALL', 'ok', implode(', ', $fwNames), Text::_('COM_FGSYSTEMREPORT_SEC_FIREWALL_OK'));
+		} elseif ($fwPlugins['disabled']) {
+			$add('COM_FGSYSTEMREPORT_SEC_FIREWALL', 'warning', Text::_('COM_FGSYSTEMREPORT_SEC_FIREWALL_DISABLED'),
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_FIREWALL_DISABLED_NOTE', implode(', ', $fwPlugins['disabled'])));
+		} else {
+			$add('COM_FGSYSTEMREPORT_SEC_FIREWALL', 'info', Text::_('JNONE'), Text::_('COM_FGSYSTEMREPORT_SEC_FIREWALL_NONE'));
 		}
 
 		// 4) Debug mode
@@ -1505,7 +1576,7 @@ class FgsystemreportHelper
 	 * @param   array  $urls   key => absolute URL
 	 * @param   bool   $range  send "Range: bytes=0-256"
 	 *
-	 * @return  array  key => object (httpCode, body)
+	 * @return  array  key => object (httpCode, body, headers)
 	 */
 	private static function probeUrls(array $urls, bool $range): array
 	{
@@ -1521,9 +1592,11 @@ class FgsystemreportHelper
 		$multi   = curl_multi_init();
 		$handles = [];
 		$bodies  = [];
+		$heads   = [];
 
 		foreach ($urls as $key => $url) {
 			$bodies[$key] = '';
+			$heads[$key]  = [];
 			$ch           = curl_init($url);
 			$opts         = [
 				CURLOPT_HTTPGET        => true,
@@ -1533,7 +1606,15 @@ class FgsystemreportHelper
 				CURLOPT_FOLLOWLOCATION => false,
 				CURLOPT_SSL_VERIFYPEER => $verify,
 				CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0,
-				CURLOPT_USERAGENT      => 'JC-System-Report-Security-Check',
+				CURLOPT_USERAGENT      => self::selfUserAgent(),
+				CURLOPT_HEADERFUNCTION => static function ($handle, $line) use (&$heads, $key) {
+					if (strpos($line, ':') !== false) {
+						[$n, $v] = explode(':', $line, 2);
+						$heads[$key][strtolower(trim($n))] = trim($v);
+					}
+
+					return strlen($line);
+				},
 				CURLOPT_WRITEFUNCTION  => static function ($handle, $chunk) use (&$bodies, $key, $cap) {
 					$room = $cap - strlen($bodies[$key]);
 
@@ -1567,6 +1648,7 @@ class FgsystemreportHelper
 			$responses[$key] = (object) [
 				'httpCode' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
 				'body'     => $bodies[$key],
+				'headers'  => $heads[$key],
 			];
 			curl_multi_remove_handle($multi, $ch);
 			curl_close($ch);
@@ -1606,7 +1688,9 @@ class FgsystemreportHelper
 	 *                  all), ->reliable (bool, whether the canary probe
 	 *                  confirms normal 404 behaviour), ->exposed (array
 	 *                  of confirmed-exposed URLs, only meaningful when
-	 *                  both of the above are true).
+	 *                  both of the above are true), ->blocked (path =>
+	 *                  firewall name, probes a firewall refused: those
+	 *                  paths could not be judged).
 	 */
 	public static function checkExposedSensitiveFiles(): object
 	{
@@ -1614,6 +1698,7 @@ class FgsystemreportHelper
 			'available' => false,
 			'reliable'  => false,
 			'exposed'   => [],
+			'blocked'   => [],
 		];
 
 		if (!function_exists('curl_multi_init')) {
@@ -1672,6 +1757,13 @@ class FgsystemreportHelper
 			$response = $responses[$path];
 
 			if (!in_array($response->httpCode, [200, 206], true)) {
+				// A firewall refused the probe: the file itself was never looked at
+				$fw = HardeningHelper::blockedByFirewall((int) $response->httpCode, $response->headers);
+
+				if ($fw !== '') {
+					$result->blocked[$path] = $fw;
+				}
+
 				continue;
 			}
 
@@ -2179,7 +2271,7 @@ class FgsystemreportHelper
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_TIMEOUT        => 5,
 			CURLOPT_CONNECTTIMEOUT => 3,
-			CURLOPT_USERAGENT      => 'JC-System-Report-Version-Check',
+			CURLOPT_USERAGENT      => 'FG-System-Report-Version-Check',
 			CURLOPT_SSL_VERIFYPEER => true,
 		];
 

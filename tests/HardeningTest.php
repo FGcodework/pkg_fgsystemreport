@@ -91,4 +91,47 @@ return [
         assertSame(false, H::dmarcMonitorOnly('reject'));
         assertSame(false, H::dmarcMonitorOnly(''));
     },
+    'own requests carry an identifiable User-Agent' => function () {
+        assertSame('FG-System-Report/1.18.5 (self-check)', H::userAgent('1.18.5'));
+        assertSame('FG-System-Report (self-check)', H::userAgent(' '));
+    },
+
+    'the SiteOps Suite refusal page is recognised, a plain 403 is not' => function () {
+        $siteops = [
+            'content-security-policy' => "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+            'x-robots-tag' => 'noindex, nofollow',
+        ];
+        assertSame('SiteOps Suite', H::blockedByFirewall(403, $siteops));
+        assertSame('', H::blockedByFirewall(200, $siteops));
+        assertSame('', H::blockedByFirewall(404, $siteops));
+        // Apache denying a dotfile: no such headers
+        assertSame('', H::blockedByFirewall(403, ['server' => 'Apache/2.4.58', 'content-type' => 'text/html']));
+        assertSame('', H::blockedByFirewall(403, []));
+    },
+
+    'Cloudflare counts only when it marks the response as mitigated' => function () {
+        assertSame('Cloudflare', H::blockedByFirewall(403, ['cf-ray' => 'abc', 'cf-mitigated' => 'challenge']));
+        assertSame('', H::blockedByFirewall(403, ['cf-ray' => 'abc', 'server' => 'cloudflare']));
+        assertSame('Sucuri', H::blockedByFirewall(403, ['x-sucuri-id' => '15008']));
+        assertSame('Imunify360', H::blockedByFirewall(403, ['server' => 'imunify360-webshield/1.21']));
+    },
+
+    'a firewall or CDN in front of the site is read from the headers' => function () {
+        assertSame('Cloudflare', H::firewallFromHeaders(['cf-ray' => '8a1-PRG']));
+        assertSame('Cloudflare', H::firewallFromHeaders(['server' => 'cloudflare']));
+        assertSame('Sucuri', H::firewallFromHeaders(['x-sucuri-cache' => 'HIT']));
+        assertSame('', H::firewallFromHeaders(['server' => 'Apache/2.4.58']));
+        assertSame('', H::firewallFromHeaders([]));
+    },
+
+    'firewall plugins are told apart: enabled, disabled, not installed' => function () {
+        $r = H::firewallsFromPlugins([
+            ['element' => 'siteopssuite', 'enabled' => '1'],
+            ['element' => 'admintools', 'enabled' => 0],
+            ['element' => 'fgremovegenerator', 'enabled' => 1],
+        ]);
+        assertSame(['SiteOps Suite'], $r['active']);
+        assertSame(['Admin Tools'], $r['disabled']);
+        assertSame(['active' => [], 'disabled' => []], H::firewallsFromPlugins([]));
+    },
 ];

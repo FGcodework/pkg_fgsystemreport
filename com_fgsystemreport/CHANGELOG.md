@@ -28,6 +28,32 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.5]
+
+### Changed - exposed-files probes and a firewall in front of the site
+- The probes for publicly exposed files (.env, .git, phpinfo.php, ...) are
+  requests the component sends to its own site. A firewall such as
+  SiteOps Suite takes them for a scanner and blocks them (observed: 48
+  "attacks" in a day, all `GET /phpinfo.php` from the server's own address).
+  The check no longer reads such a refusal as "not exposed": when a firewall
+  refuses probes, the row is informational, names the firewall and the paths
+  that could not be judged, and says to add the server's own address to the
+  firewall's allow list. A plain 403 from the web server is still treated as
+  protected. Recognised: SiteOps Suite, Cloudflare (cf-mitigated), Sucuri,
+  Imunify360.
+- The requests to the own site now send an identifiable User-Agent,
+  `FG-System-Report/<version> (self-check)`, instead of the old
+  `JC-System-Report-Security-Check`, so they are easy to tell apart in a
+  firewall log or an access log.
+
+### Added - "Web application firewall" row in the Security Check
+- Shows whether a firewall extension is enabled (SiteOps Suite, Admin Tools,
+  RSFirewall!, Securitycheck Pro) or a firewall / CDN is in front of the site
+  (Cloudflare, Sucuri, Imunify360, read from the response headers of the home
+  page). A plugin that is installed but disabled is a warning; no firewall is
+  only information, because a hosting provider may run one at server level.
+  The row is in the "Accounts and access" theme.
+
 ## [1.18.4]
 
 _Includes the changes of the former releases 1.18.0 - 1.18.3 (removed from GitHub)._

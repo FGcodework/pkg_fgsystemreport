@@ -133,4 +133,120 @@ final class HardeningHelper
     {
         return strtolower(trim($policy)) === 'none';
     }
+
+    /** Joomla extensions that act as a web application firewall: plugin element => name. */
+    public const FIREWALL_PLUGINS = [
+        'siteopssuite'     => 'SiteOps Suite',
+        'admintools'       => 'Admin Tools',
+        'rsfirewall'       => 'RSFirewall!',
+        'securitycheckpro' => 'Securitycheck Pro',
+    ];
+
+    /** Status codes a firewall answers with when it refuses a request. */
+    private const REFUSAL_CODES = [403, 406, 429, 503];
+
+    /**
+     * User-Agent of the requests this component sends to its own site, so the
+     * site's firewall and access log show who is knocking.
+     *
+     * @since  1.18.5
+     */
+    public static function userAgent(string $version): string
+    {
+        $version = trim($version);
+
+        return 'FG-System-Report' . ($version !== '' ? '/' . $version : '') . ' (self-check)';
+    }
+
+    /**
+     * Which of the firewall plugins are installed, split by enabled / disabled.
+     *
+     * @param   list<array{element:string,enabled:int|string}>  $rows  system plugins from #__extensions
+     *
+     * @return  array{active:list<string>,disabled:list<string>}
+     *
+     * @since   1.18.5
+     */
+    public static function firewallsFromPlugins(array $rows): array
+    {
+        $out = ['active' => [], 'disabled' => []];
+
+        foreach (self::FIREWALL_PLUGINS as $element => $name) {
+            foreach ($rows as $row) {
+                if (($row['element'] ?? '') !== $element) {
+                    continue;
+                }
+
+                $out[(int) ($row['enabled'] ?? 0) === 1 ? 'active' : 'disabled'][] = $name;
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A firewall or CDN in front of the site, read from the response headers
+     * (any response, so also the home page).
+     *
+     * @param   array<string,string>  $headers  lower-case name => value
+     *
+     * @return  string  name, '' when none is recognised
+     *
+     * @since   1.18.5
+     */
+    public static function firewallFromHeaders(array $headers): string
+    {
+        $server = strtolower((string) ($headers['server'] ?? ''));
+
+        if (isset($headers['cf-ray']) || $server === 'cloudflare') {
+            return 'Cloudflare';
+        }
+
+        if (isset($headers['x-sucuri-id']) || isset($headers['x-sucuri-cache']) || strpos($server, 'sucuri') !== false) {
+            return 'Sucuri';
+        }
+
+        if (strpos($server, 'imunify360') !== false || isset($headers['x-imunify360-request-id'])) {
+            return 'Imunify360';
+        }
+
+        return '';
+    }
+
+    /**
+     * Did a firewall refuse this request before it reached the file asked for?
+     * A plain 403 from the web server (e.g. .htaccess denies dotfiles) is not
+     * one: only a response that carries the firewall's own mark counts.
+     *
+     * @param   array<string,string>  $headers  lower-case name => value
+     *
+     * @return  string  name of the firewall, '' when the response is not a firewall refusal
+     *
+     * @since   1.18.5
+     */
+    public static function blockedByFirewall(int $code, array $headers): string
+    {
+        if (!\in_array($code, self::REFUSAL_CODES, true)) {
+            return '';
+        }
+
+        // SiteOps Suite: its own page is sent with a strict, self-contained Content-Security-Policy
+        $csp = strtolower((string) ($headers['content-security-policy'] ?? ''));
+
+        if ($code === 403 && strpos($csp, "default-src 'none'") === 0 && strpos($csp, "form-action 'self'") !== false
+            && strpos(strtolower((string) ($headers['x-robots-tag'] ?? '')), 'noindex') !== false) {
+            return 'SiteOps Suite';
+        }
+
+        // Cloudflare marks what it challenged or blocked; a 403 from the origin behind it has no such header
+        if (isset($headers['cf-mitigated'])) {
+            return 'Cloudflare';
+        }
+
+        $name = self::firewallFromHeaders($headers);
+
+        // Sucuri / Imunify360 refuse with the mark of their own proxy on the response
+        return \in_array($name, ['Sucuri', 'Imunify360'], true) ? $name : '';
+    }
 }
