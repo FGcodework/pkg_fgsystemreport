@@ -30,43 +30,18 @@ too whenever it's bumped again, so this note doesn't go stale.)
 
 ## [1.18.4]
 
-### Changed - Security page
-- The theme headings are a pale grey band (9 % of the text colour over the
-  panel, so it is slightly darker than the surroundings in light mode and
-  lighter in dark mode); the accent colour stays only in the heading text.
-  The tinted fill of 1.18.3 was too strong.
-
-## [1.18.3]
-
-### Changed - Security page
-- The theme headings get a faint accent tint (12 % blended into the soft
-  background) so the band no longer merges with the surroundings; still no
-  stripe, in light and dark mode.
-
-## [1.18.2]
-
-### Changed - Security page
-- The theme headings are quieter: a neutral band slightly apart from the
-  check rows with the accent colour only in the text (no coloured stripe or
-  tinted fill). Light and dark mode.
-
-## [1.18.1]
-
-### Changed - Security page
-- The theme headings are now a solid accent-coloured band (accent stripe on
-  the left, upper-case blue text, counts of critical / warning rows) so they
-  stand apart from the check rows, in light and dark mode. The jump buttons
-  above the table are rounded to match.
-
-## [1.18.0]
+_Includes the changes of the former releases 1.18.0 - 1.18.3 (removed from GitHub)._
 
 ### Changed - Security page grouped by theme
 - The list of checks is no longer one long table: the rows are sorted into
   seven themes - updates and known vulnerabilities, files and integrity,
   accounts and access, HTTPS and browser protection, PHP and server, Joomla
   configuration, database / mail / operation. Each theme has a heading with
-  the number of critical and warning rows, and a row of buttons above the
-  table jumps to it.
+  the number of critical and warning rows, and a row of rounded buttons above
+  the table jumps to it.
+- The theme headings are a pale grey band (9 % of the text colour over the
+  panel, so it is slightly darker than the surroundings in light mode and
+  lighter in dark mode); the accent colour stays only in the heading text.
 - Display only: the checks, their order inside a theme, the score, the
   history, the exports and the notification e-mails are unchanged. A check
   that has no theme yet would appear under "Other"; a unit test fails until
@@ -110,33 +85,7 @@ Four small checks from the SiteOps Suite review (point 3), written from scratch.
 
 ## [1.16.3]
 
-### Fixed - the cause of 1.16.0 - 1.16.2
-- `insertObject()` takes its object by reference; the core file check and the
-  critical files watch passed an object literal, which PHP refuses ("could not
-  be passed by reference"). So the core check result was never stored in the
-  database and the critical files baseline could not be written. Both now pass
-  a variable.
-
-## [1.16.2]
-
-### Fixed - "Entry points and configuration files" row missing
-- When the watch could not use its database table the row was left out
-  without a word. It is now always shown; if the table cannot be created or
-  read, the row is information and names the database error (also written
-  to `fgsystemreport_events.log` in the Joomla logs folder). The core file
-  check logs its database errors to the same file.
-
-## [1.16.1]
-
-### Fixed - core file check result not shown
-- After a finished core file check the Security Check could still say "not
-  checked". The result is now also kept in a file next to the fingerprints
-  (`core-result.json`) and read from there when the database has no row; when
-  neither can be written the check ends with an error that names the cause
-  instead of a silent success. Database errors of the check are logged
-  (category `com_fgsystemreport`).
-
-## [1.16.0]
+_Includes the changes of the former releases 1.16.0 - 1.16.2 (removed from GitHub)._
 
 Ideas from a review of the free "SiteOps Suite" (PharWeb, GPLv2+); the code is
 written from scratch. Only two of its ideas, both about files.
@@ -161,6 +110,11 @@ written from scratch. Only two of its ideas, both about files.
   `installation` folder and empty `index.html` placeholders.
 - Only stable releases (x.y.z) have an official package; on a pre-release the
   card says so.
+- The result is kept in the database and also in a file next to the
+  fingerprints (`core-result.json`), read from there when the database has no
+  row; when neither can be written the check ends with an error that names the
+  cause. Database errors are logged to `fgsystemreport_events.log` in the
+  Joomla logs folder.
 
 ### Added - entry points and configuration files
 - New Security Check row, "Entry points and configuration files": watches
@@ -172,12 +126,19 @@ written from scratch. Only two of its ideas, both about files.
   matches an extension / Joomla update or a Global Configuration save made at
   about the same time is shown as information only.
 - Every change is also written to the change timeline (type "file").
+- The row is always shown; if its table cannot be created or read, the row is
+  information and names the database error.
+
+### Fixed
+- `insertObject()` takes its object by reference; the first builds of the core
+  file check and the critical files watch passed an object literal, which PHP
+  refuses, so the core check result and the critical files baseline were not
+  stored. Both now pass a variable.
 
 ### Notes
-- Both rows can be accepted as a risk like any other check. Not tested on a
-  live Joomla site: the comparison engine was run against the real Joomla
-  5.4.1 package and by the unit tests (92 in all); the controller, AJAX loop,
-  table creation and the GitHub API response were not.
+- Both rows can be accepted as a risk like any other check. Checked on a live
+  Joomla 5.4 site; the comparison engine was also run against the real Joomla
+  5.4.1 package and by the unit tests.
 
 ## [1.14.0]
 
@@ -236,14 +197,43 @@ the code is written from scratch and tuned on a copy of the real feed.
 
 ## [1.13.36]
 
+_Includes the changes of the former releases 1.13.32 - 1.13.35 (removed from GitHub)._
+
 Intranet / hardened servers.
 
 ### Fixed
+- Dashboard: the Article Categories, Articles and Users boxes showed "Warning:
+  Trying to access array offset on null" on sites that display PHP warnings.
+  Regression from 1.13.28, where `getReportData()` was removed from the model
+  as "unused" although the dashboard template still called it. The method is
+  back (it only counts published content categories, published articles and
+  users), and the template falls back to 0 instead of raising a warning.
+- PHP/DB clock check: false "timezone-interpretation mismatch" warning on
+  servers whose MySQL/MariaDB `time_zone` is `SYSTEM` and not UTC (e.g.
+  Europe/Bratislava). The check compared PHP's time with
+  `UNIX_TIMESTAMP(UTC_TIMESTAMP())`, which reads a UTC value as local time and
+  therefore always differed by exactly the timezone offset (3600 / 7200 s).
+  It now compares with `UNIX_TIMESTAMP()` (the real epoch), so only a genuinely
+  different clock is reported. The earlier explanation about missing timezone
+  tables (`mysql_tzinfo_to_sql`) was wrong for this case and is gone.
+- "No update site" check listed Joomla's own extensions (e.g.
+  `plg_workflow_featuring`, `plg_workflow_publishing`,
+  `plg_workflow_notification`, `plg_webservices_installer`) on sites upgraded
+  from older versions: core extensions introduced by a later release get ids
+  above 10000 there, and the check treated every such id as third-party.
+  Protected extensions and those whose manifest author is "Joomla! Project"
+  are now skipped.
+- 3 more tests (47 in total).
 - Logo in the component header was a broken image on servers that do not
   serve files from `administrator/components/.../assets` directly. It is now
   embedded in the page as a data URI (like the stylesheet already was).
 
 ### Changed
+- Security headers check: the note no longer sends everything to the Joomla
+  HTTP Headers plugin. That plugin offers X-Frame-Options and Referrer-Policy
+  but has no X-Content-Type-Options option (its "Force HTTP Headers" list is a
+  fixed selection), so a missing `X-Content-Type-Options` now points to the
+  `.htaccess` line `Header always set X-Content-Type-Options nosniff`.
 - "Next Joomla version": the lookup honours the proxy from Joomla's Global
   Configuration, requires an HTTP 2xx answer, and its result - including
   "unreachable" - is cached for 60 minutes. Before, a server without internet
@@ -256,53 +246,25 @@ Intranet / hardened servers.
   `proxy_user`, `proxy_pass`) follows Joomla's configuration keys but has not
   been tried against a real proxy.
 
-## [1.13.35]
-
-### Changed
-- Security headers check: the note no longer sends everything to the Joomla
-  HTTP Headers plugin. That plugin offers X-Frame-Options and Referrer-Policy
-  but has no X-Content-Type-Options option (its "Force HTTP Headers" list is a
-  fixed selection), so a missing `X-Content-Type-Options` now points to the
-  `.htaccess` line `Header always set X-Content-Type-Options nosniff`.
-
-## [1.13.34]
-
-### Fixed
-- "No update site" check listed Joomla's own extensions (e.g.
-  `plg_workflow_featuring`, `plg_workflow_publishing`,
-  `plg_workflow_notification`, `plg_webservices_installer`) on sites upgraded
-  from older versions: core extensions introduced by a later release get ids
-  above 10000 there, and the check treated every such id as third-party.
-  Protected extensions and those whose manifest author is "Joomla! Project"
-  are now skipped.
-- 3 more tests (47 in total).
-
-## [1.13.33]
-
-### Fixed
-- PHP/DB clock check: false "timezone-interpretation mismatch" warning on
-  servers whose MySQL/MariaDB `time_zone` is `SYSTEM` and not UTC (e.g.
-  Europe/Bratislava). The check compared PHP's time with
-  `UNIX_TIMESTAMP(UTC_TIMESTAMP())`, which reads a UTC value as local time and
-  therefore always differed by exactly the timezone offset (3600 / 7200 s).
-  It now compares with `UNIX_TIMESTAMP()` (the real epoch), so only a genuinely
-  different clock is reported. The earlier explanation about missing timezone
-  tables (`mysql_tzinfo_to_sql`) was wrong for this case and is gone.
-
-## [1.13.32]
-
-### Fixed
-- Dashboard: the Article Categories, Articles and Users boxes showed "Warning:
-  Trying to access array offset on null" on sites that display PHP warnings.
-  Regression from 1.13.28, where `getReportData()` was removed from the model
-  as "unused" although the dashboard template still called it. The method is
-  back (it only counts published content categories, published articles and
-  users), and the template falls back to 0 instead of raising a warning.
-
 ## [1.13.31]
+
+_Includes the changes of the former release 1.13.30 (removed from GitHub)._
 
 Three additions inspired by a review of a third-party security extension
 (ideas only, all code written from scratch).
+
+### Changed
+- The exposed-files check (HTTP) also probes `.user.ini` and `php.ini` in the
+  web root; a hit needs a PHP directive in the first bytes of the response, so
+  a custom 404 page is not mistaken for the file.
+- "Send test e-mail" now needs `core.admin` (it sends a message to the
+  configured recipients) and its button is hidden for other users.
+- The "new in list" badge on Disk Usage uses the themed `fgsr-badge-official`
+  class like the other badges instead of `bg-info text-dark`.
+- 2 more tests (32 in total).
+- HSTS and the new header check share one HEAD request of the home page.
+  Only the headers of the final response after redirects are used (before,
+  an HSTS header sent by a redirect hop could be mistaken for the final one).
 
 ### Added
 - **Super User tracking.** The system plugin (1.0.7) records a timeline entry
@@ -325,31 +287,70 @@ Three additions inspired by a review of a third-party security extension
   Referrer-Policy alone is informational.
 - 12 more tests (44 in total).
 
-### Changed
-- HSTS and the new header check share one HEAD request of the home page.
-  Only the headers of the final response after redirects are used (before,
-  an HSTS header sent by a redirect hop could be mistaken for the final one).
-
 ### Not tested live
 - Logic is covered by unit tests and a run against a temporary directory
   tree; the Joomla user-save events (`onUserBeforeSave`/`onUserAfterSave`)
   and the header probe still need a check on a real site.
 
-## [1.13.30]
-
-### Changed
-- The exposed-files check (HTTP) also probes `.user.ini` and `php.ini` in the
-  web root; a hit needs a PHP directive in the first bytes of the response, so
-  a custom 404 page is not mistaken for the file.
-- "Send test e-mail" now needs `core.admin` (it sends a message to the
-  configured recipients) and its button is hidden for other users.
-- The "new in list" badge on Disk Usage uses the themed `fgsr-badge-official`
-  class like the other badges instead of `bg-info text-dark`.
-- 2 more tests (32 in total).
-
 ## [1.13.29]
 
+_Includes the changes of the former releases 1.13.1 - 1.13.28 (removed from GitHub)._
+
+### Changed
+- Slovak (sk-SK): the 36 missing language keys are translated, so the interface is now fully Slovak (en-GB, sk-SK and de-DE all have 573 keys).
+- Dashboard statistics: values are shown in the accent colour again (they were plain text after the redesign); the Joomla version is green when current and amber when an update is available.
+- Dashboard statistics: the PHP and database versions are coloured by the matching Security Check (green supported, amber ending within 6 months or outdated, red end-of-life or unsupported).
+- Growth alerts now also watch the **total size** (site for Disk Usage, database for the Database page) between two snapshots, using the same limits, so growth spread over many small items is caught.
+- Growth alerts now report **new** folders/tables that were not in the previous snapshot. They are judged by the absolute limit only; for the Disk Usage top-N list the previous size is taken as the smallest folder that was listed, so the shown growth is a lower bound. For database tables (listed completely) the previous size is 0.
+- Exposure probes (sensitive files, directory listings): the response body is now capped at 16 KB with a write callback that aborts the transfer, so a server that ignores the `Range` header and serves a huge file (for example a large `error_log`) is no longer downloaded in full. Both probes share one fetch routine; timeouts are unchanged. Tested against a 50 MB file: 16 KB read, no measurable memory use.
+- New option "Verify TLS certificate in exposure checks" (Options, default off). The probes request this very site, so by default a self-signed or staging certificate must not hide an exposed file; turn it on to require a valid certificate.
+- HSTS check: certificate verification follows the new "Verify TLS certificate in exposure checks" option (default off, as before).
+- Removed an unused `DatabaseInterface` import from the service providers of
+  the quickicon, console and system plugins (1.0.3 / 1.0.2 / 1.0.4). No
+  functional change.
+- Not changed: the `(array) PluginHelper::getPlugin(...)` call in the
+  providers. It is the standard Joomla core pattern and the provider only runs
+  for a plugin that is installed and enabled, so the record exists.
+- "Clear history" no longer uses the browser's native confirm box. A themed
+  confirmation dialog (same style as the "Working..." overlay, light and dark
+  mode, Cancel focused by default, Esc / click outside to cancel) is used
+  instead. Any form can opt in with `data-fg-confirm="message"` and optional
+  `data-fg-confirm-ok="button label"`; the handler lives in `BusyHelper`.
+- New language keys COM_FGSYSTEMREPORT_CONFIRM_TITLE / _CONFIRM_OK (en-GB,
+  sk-SK, de-DE; 593 keys each).
+- The cached Security Check result (60 minutes) is now dropped when something
+  it depends on changes: an extension is installed, updated, removed, enabled
+  or disabled, or a watched Global Configuration value is saved. The header
+  score and the Security page reflect the change on the next view instead of
+  after the cache expires (system plugin 1.0.6).
+
+### Fixed
+- Header score pill and history disagreed with the Security Check page after accepting or revoking a risk (the pill shows the latest recorded run). The Security Check page now records a run whenever its score differs from the latest recorded one.
+- "Extensions without an active update site" counted every extension, including Joomla core extensions and the individual members of packages (which never have their own update site), which inflated the number. It now counts only non-core extensions that are not package members, and the note lists the first 12 of them by name.
+- "Extensions without an active update site" no longer lists orphaned records (extensions whose files are gone); they are reported by the new check instead.
+- Scheduled notification (task plugin 1.4.1): the previous and current state were compared by the translated check label; they are now compared by the stable check key, so changing the language no longer causes false alerts. State saved by an older version is taken once as a new baseline (no notification on the first run after the update).
+- Scheduled notification: the new state was saved before the e-mail was sent, so a failed send lost the alert. The state is now saved only after a successful send (or when there is nothing to send), so a failed send is retried at the next run.
+- Super User recipients and the new-Super-User detection used the hardcoded group id 8. They now use every group that holds core.admin (new `FgsystemreportHelper::getSuperUserGroupIds()`), the same as the Security Check; growth alerts use it too.
+- Known vulnerable extensions (Joomla VEL): the feed was read with `file_get_contents()`, which has no explicit timeout (PHP default 60 s, so an unreachable server could stall the whole Security Check) and no size limit. It is now fetched with cURL: connect timeout 3 s, total timeout 8 s, response capped at 4 MB, HTTPS only, TLS verified, HTTP 200 required.
+- An invalid or non-JSON response used to be treated as "no vulnerable extensions found" (OK); it is now reported as "could not check" (info). Matching is unchanged: a name match is still only a possible match to verify manually.
+- PDF report: raw SQL used double-quoted string literals (`extension = "com_content"`, `name != ""`), which PostgreSQL reads as identifiers and MySQL with `ANSI_QUOTES` rejects. Both queries are now built with the query builder and `quote()`/`quoteName()`.
+- Dashboard/model: the "active users (30 days)" query used the MySQL-only `NOW() - INTERVAL 30 DAY`; it now compares with a date computed in PHP.
+- Security Check on PostgreSQL: the clock-skew check no longer runs MySQL-only statements outside a `try` block (they aborted the whole check); it uses `EXTRACT(EPOCH FROM NOW())` and `SHOW TIME ZONE` there, and the MySQL `sql_mode` check is skipped on non-MySQL servers.
+- Database page: MariaDB reporting itself as `mariadb` is no longer treated as an unsupported server.
+- **Disk scan aborted on a dangling symlink.** `SplFileInfo::getSize()` throws
+  for a broken symbolic link (or a file that disappears during the scan) and
+  the exception was not caught, so one such link made the whole Disk Usage
+  scan fail. Such entries are now counted as 0 bytes. Found while checking a
+  code review's symlink claim (reproduced with a test tree before the fix).
+- Scheduled "Disk Growth Check" now ends as failed (not OK) when the scan hit
+  a limit and was therefore not stored, so it is visible in Scheduled Tasks
+  (task plugin 1.4.3).
+- `memory_limit` parsing in the scan guard accepts spaces and a trailing B
+  (e.g. `512 M`, `512MB`) and treats anything unparsable as "no limit".
+
 ### Added
+- New Security Check "Extension records without files": lists non-core extensions that are registered in Joomla but whose folder is missing on disk (orphaned records).
+- New Security Check "SSL certificate trusted": validates the certificate of the site's own domain the way a browser does (trusted chain, host name). The existing "SSL certificate expiry" check deliberately reads the certificate without validating it, so it only tells you about expiry; an untrusted, self-signed or mismatched certificate is now reported separately as a warning with the OpenSSL reason. A refused or unreachable port 443 is reported as inconclusive, not as a trust failure.
 - **Expiry of accepted risks.** When accepting a finding you choose how long
   the acceptance is valid: 30 / 90 (default) / 180 / 365 days or no expiry.
   The note shows "Valid until <date>". When it expires the finding counts
@@ -362,194 +363,13 @@ Three additions inspired by a review of a third-party security extension
 - 6 new language keys (en-GB, sk-SK, de-DE; 599 keys each) and 3 more tests
   (30 in total).
 
-## [1.13.28]
+### Security
+- The PDF actions (`generatePDF`, `emailPDF`) required only `core.manage`, while the Report page and the Security Check need `core.admin`. The PDF can contain Security Check results and technical site details, and the e-mail variant lets the caller choose the recipient. Both actions now require `core.admin` in the controller.
+- Dashboard: the Security, Report tiles and the PDF section are shown only to users with `core.admin`; others no longer see links that end in a 403.
+- The operations that run on a plain GET link (Security Check "Check again" `force=1`, Disk Usage rescan `rescan=1`, Database re-run `refresh=1`, Report "fresh data") had no CSRF protection, so a crafted link could make a logged-in administrator trigger an expensive scan. The links and the Report form now carry the session token and the views run the operation only when the token is valid; otherwise the page shows the cached data as usual.
 
-### Changed
-- The cached Security Check result (60 minutes) is now dropped when something
-  it depends on changes: an extension is installed, updated, removed, enabled
-  or disabled, or a watched Global Configuration value is saved. The header
-  score and the Security page reflect the change on the next view instead of
-  after the cache expires (system plugin 1.0.6).
-
-### Internal
-- Added `tests/` - dependency-free tests (`php tests/run.php`, 27 cases) for
-  the security score, disk scan (limits, exclude list, dangling symlink,
-  symlink loop, TopHeap), history comparison, growth detection and accepted
-  risk, plus a GitHub Actions workflow that runs them on PHP 8.1 and 8.3.
-  The tests are not part of the installable package.
-- Removed the unused `getReportData()` from the component model and the
-  template comment block at the end of `config.xml`.
-
-## [1.13.27]
-
-### Changed (from a code review)
-- Notification recipients (task options and the growth alert setting) are
-  split on comma, semicolon or whitespace and validated; invalid addresses are
-  ignored (the task logs how many) instead of being passed to the mailer
-  (task plugin 1.4.4).
-
-### Checked, no change needed
-- The reported SVG `viewBox` / `points` separators and the CSS spacing errors
-  do not exist in the source: the files are correct (a whitespace-stripped
-  preview of the repository was the source of those findings).
-
-## [1.13.26]
-
-### Changed
-- "Clear history" no longer uses the browser's native confirm box. A themed
-  confirmation dialog (same style as the "Working..." overlay, light and dark
-  mode, Cancel focused by default, Esc / click outside to cancel) is used
-  instead. Any form can opt in with `data-fg-confirm="message"` and optional
-  `data-fg-confirm-ok="button label"`; the handler lives in `BusyHelper`.
-- New language keys COM_FGSYSTEMREPORT_CONFIRM_TITLE / _CONFIRM_OK (en-GB,
-  sk-SK, de-DE; 593 keys each).
-
-## [1.13.25]
-
-### Changed (accepted risk, from a code review)
-- Accepting a finding again (replacing an existing acceptance) now runs the
-  delete + insert in one database transaction, so a failed insert can no
-  longer leave the finding without any acceptance.
-
-### Checked, no change needed
-- Accepted-risk notes are escaped wherever they are shown (Security page, PDF,
-  printable report; the CLI strips tags), so a note with HTML cannot execute;
-  stripping tags on input would only mangle legitimate text such as `a < b`.
-- The uninstall SQL already drops every table the component creates
-  (history, diskscan, alert, dbscan, event, accepted), for MySQL and PostgreSQL.
-- `getIdentity()->username ?? ''` does not raise a warning when there is no
-  identity (the null-coalescing operator covers the whole chain).
-
-## [1.13.24]
-
-### Fixed (system plugin, from a code review)
-- Global Configuration changes: `configuration.php` stores real booleans
-  (e.g. `debug = false`) while the form posts "0"/"1", so saving the page with
-  no change could log a bogus "debug: - > 0". Values are now normalised before
-  they are compared.
-- The plugin's own error log (`fgsystemreport_events.log`) is written to the
-  log folder configured in Global Configuration (`log_path`) instead of a
-  hard-coded `administrator/logs`; the History diagnostics read the same file.
-- Uninstall events: the extension name is also taken from the installer's
-  `getManifest()` when the manifest property is not available.
-- Not changed: the claim that `.log` files may be downloadable - Joomla's log
-  folders ship with their own access protection and no secrets are written
-  there.
-
-## [1.13.23]
-
-### Fixed
-- **Disk scan aborted on a dangling symlink.** `SplFileInfo::getSize()` throws
-  for a broken symbolic link (or a file that disappears during the scan) and
-  the exception was not caught, so one such link made the whole Disk Usage
-  scan fail. Such entries are now counted as 0 bytes. Found while checking a
-  code review's symlink claim (reproduced with a test tree before the fix).
-- Scheduled "Disk Growth Check" now ends as failed (not OK) when the scan hit
-  a limit and was therefore not stored, so it is visible in Scheduled Tasks
-  (task plugin 1.4.3).
-- `memory_limit` parsing in the scan guard accepts spaces and a trailing B
-  (e.g. `512 M`, `512MB`) and treats anything unparsable as "no limit".
-
-### Checked, no change needed
-- Symbolic-link loops: the scan does not follow directory symlinks
-  (`FOLLOW_SYMLINKS` is not set), verified with a self-referencing link.
-
-## [1.13.22]
-
-### Changed (CLI command and quick icon, from a code review)
-- `fgsystemreport:check --url` now rejects anything that is not a full
-  http:// or https:// address with a clear error (exit code 3) instead of
-  silently ignoring it; `PHP_SELF` is set as well, so the site root also
-  resolves under CGI-style setups (console plugin 1.0.3).
-- Quick icon: an unparsable `run_at` value no longer produces a bogus
-  "outdated for N days" label (quickicon plugin 1.0.4).
-- Not changed: the JSON export properties (every check is built with all of
-  label/status/value/note) and the Symfony `addCommand()` comment (Symfony
-  Console 7.4 does provide it).
-
-## [1.13.21]
-
-### Changed (from a code review)
-- State-changing actions now use POST with a form token instead of a GET link
-  with the token in the URL: Clear history, Dismiss growth alert, Send test
-  e-mail, Check for updates. Prefetching, link scanners and browser history /
-  access logs can no longer trigger them or carry their token.
-- Send test e-mail is rate limited to once per 30 seconds per session.
-- Security History: more defensive handling of legacy rows without a check key
-  (re-indexed arrays, missing entries), and a redundant database lookup in
-  `clear()` removed.
-- Kept as GET with a token: the CSV / JSON exports and the Disk Usage rescan
-  (read-only; a plain link is how a download works).
-- Not changed: the CSV output-buffer handling (rows are built before streaming
-  and a failure there would not be improved by try/finally), the `pgsql`
-  server-type check (Joomla reports `postgresql` for its PostgreSQL driver) and
-  the clock-skew query (Joomla supports only MySQL/MariaDB/PostgreSQL; an
-  unsupported engine already yields a warning that the check could not run).
-
-## [1.13.20]
-
-### Changed (PDF report memory use, from a code review)
-- The extensions table of the PDF report is written in chunks of 100 rows
-  (header repeated per chunk) instead of one huge HTML string. Measured with
-  the bundled TCPDF: 1500 rows in one call peaked at ~98 MB, the same rows
-  in chunks of 100 at ~22 MB (500 rows in one call: ~40 MB). Typical sites
-  (100-400 extensions) were never at risk; this protects very large ones.
-- The other review claims did not apply: the PDF does not contain table
-  lists, history, change logs or a directory tree, only summary figures,
-  findings, server info, template override file lists and the extension list.
-
-## [1.13.19]
-
-### Changed
-- Removed an unused `DatabaseInterface` import from the service providers of
-  the quickicon, console and system plugins (1.0.3 / 1.0.2 / 1.0.4). No
-  functional change.
-- Not changed: the `(array) PluginHelper::getPlugin(...)` call in the
-  providers. It is the standard Joomla core pattern and the provider only runs
-  for a plugin that is installed and enabled, so the record exists.
-
-## [1.13.18]
-
-### Fixed (installer script, from a second code review)
-- A failure while checking or auto-enabling the bundled plugins was swallowed
-  silently. It is now written to the Joomla log folder
-  (`fgsystemreport_install.log`) and shown as a warning on the install screen.
-- Consistent use of the imported `Factory` class in the installer script.
-- Not changed: the `JVERSION` check in the installer - Joomla defines it
-  during bootstrap in web and CLI installs alike, and the rest of the
-  component relies on it too.
-
-## [1.13.17]
-
-### Fixed (minor items from the code audit)
-- Quick icon (plugin 1.0.2): it was shown to users with `core.manage` but
-  links to the Security page, which needs `core.admin`, so lower-privileged
-  users got a 403. The icon is now shown only to users with `core.admin`.
-- Security History now stores the stable check key with every result and
-  compares runs by key, so a language change between runs (scheduler in the
-  site language, manual run in the admin language) no longer matters. Runs
-  recorded before this version have no key and are still matched by label
-  (and by position as a last resort); the first run after the upgrade is
-  stored once more because its format differs.
-
-### Documentation
-- README states explicitly that the security score (100, minus 15 per
-  critical finding, minus 5 per warning, limited to 0-100) is a rough
-  indicator, not a certified security methodology.
-
-## [1.13.16]
-
-### Changed (platform requirements made explicit, from the code audit)
-- The supported platform is Joomla 5.0+ / 6.x on PHP 8.1+ (as the update
-  server and README already stated). Joomla 4 was never supported; the
-  Scheduler plugin needs 4.1+ anyway and the code targets 5/6.
-- The package installer now refuses to install on Joomla < 5.0 or PHP < 8.1
-  with a clear error message, instead of a manual install ending half-working.
-- Manifest `version` attribute updated from 4.0 to 5.0.
-- Note: compatibility is verified by syntax checks and stub tests only; no
-  live Joomla 5 / 6 matrix test has been run by the author for every release.
-
-## [1.13.15]
+### Notes
+- Database support: the component is developed and tested on MySQL/MariaDB. The helper tables are created on PostgreSQL as well, and the issues above were fixed, but PostgreSQL has not been tested end to end, and the detailed Database diagnostics page is MySQL/MariaDB only.
 
 ### Fixed (resource use of the disk scan, from the code audit)
 - The Disk Usage scan walked the whole tree with no bound: on a site with a
@@ -568,93 +388,124 @@ Three additions inspired by a review of a third-party security extension
 - Not implemented: truly incremental (resumable) scanning across runs - the
   limits plus the exclude list are the supported way to handle huge trees.
 
-## [1.13.14]
+### Changed (platform requirements made explicit, from the code audit)
+- The supported platform is Joomla 5.0+ / 6.x on PHP 8.1+ (as the update
+  server and README already stated). Joomla 4 was never supported; the
+  Scheduler plugin needs 4.1+ anyway and the code targets 5/6.
+- The package installer now refuses to install on Joomla < 5.0 or PHP < 8.1
+  with a clear error message, instead of a manual install ending half-working.
+- Manifest `version` attribute updated from 4.0 to 5.0.
+- Note: compatibility is verified by syntax checks and stub tests only; no
+  live Joomla 5 / 6 matrix test has been run by the author for every release.
 
-### Fixed
-- PDF report: raw SQL used double-quoted string literals (`extension = "com_content"`, `name != ""`), which PostgreSQL reads as identifiers and MySQL with `ANSI_QUOTES` rejects. Both queries are now built with the query builder and `quote()`/`quoteName()`.
-- Dashboard/model: the "active users (30 days)" query used the MySQL-only `NOW() - INTERVAL 30 DAY`; it now compares with a date computed in PHP.
-- Security Check on PostgreSQL: the clock-skew check no longer runs MySQL-only statements outside a `try` block (they aborted the whole check); it uses `EXTRACT(EPOCH FROM NOW())` and `SHOW TIME ZONE` there, and the MySQL `sql_mode` check is skipped on non-MySQL servers.
-- Database page: MariaDB reporting itself as `mariadb` is no longer treated as an unsupported server.
+### Fixed (minor items from the code audit)
+- Quick icon (plugin 1.0.2): it was shown to users with `core.manage` but
+  links to the Security page, which needs `core.admin`, so lower-privileged
+  users got a 403. The icon is now shown only to users with `core.admin`.
+- Security History now stores the stable check key with every result and
+  compares runs by key, so a language change between runs (scheduler in the
+  site language, manual run in the admin language) no longer matters. Runs
+  recorded before this version have no key and are still matched by label
+  (and by position as a last resort); the first run after the upgrade is
+  stored once more because its format differs.
 
-### Notes
-- Database support: the component is developed and tested on MySQL/MariaDB. The helper tables are created on PostgreSQL as well, and the issues above were fixed, but PostgreSQL has not been tested end to end, and the detailed Database diagnostics page is MySQL/MariaDB only.
+### Documentation
+- README states explicitly that the security score (100, minus 15 per
+  critical finding, minus 5 per warning, limited to 0-100) is a rough
+  indicator, not a certified security methodology.
 
-## [1.13.13]
+### Fixed (installer script, from a second code review)
+- A failure while checking or auto-enabling the bundled plugins was swallowed
+  silently. It is now written to the Joomla log folder
+  (`fgsystemreport_install.log`) and shown as a warning on the install screen.
+- Consistent use of the imported `Factory` class in the installer script.
+- Not changed: the `JVERSION` check in the installer - Joomla defines it
+  during bootstrap in web and CLI installs alike, and the rest of the
+  component relies on it too.
 
-### Fixed
-- Known vulnerable extensions (Joomla VEL): the feed was read with `file_get_contents()`, which has no explicit timeout (PHP default 60 s, so an unreachable server could stall the whole Security Check) and no size limit. It is now fetched with cURL: connect timeout 3 s, total timeout 8 s, response capped at 4 MB, HTTPS only, TLS verified, HTTP 200 required.
-- An invalid or non-JSON response used to be treated as "no vulnerable extensions found" (OK); it is now reported as "could not check" (info). Matching is unchanged: a name match is still only a possible match to verify manually.
+### Changed (PDF report memory use, from a code review)
+- The extensions table of the PDF report is written in chunks of 100 rows
+  (header repeated per chunk) instead of one huge HTML string. Measured with
+  the bundled TCPDF: 1500 rows in one call peaked at ~98 MB, the same rows
+  in chunks of 100 at ~22 MB (500 rows in one call: ~40 MB). Typical sites
+  (100-400 extensions) were never at risk; this protects very large ones.
+- The other review claims did not apply: the PDF does not contain table
+  lists, history, change logs or a directory tree, only summary figures,
+  findings, server info, template override file lists and the extension list.
 
-## [1.13.12]
+### Changed (from a code review)
+- State-changing actions now use POST with a form token instead of a GET link
+  with the token in the URL: Clear history, Dismiss growth alert, Send test
+  e-mail, Check for updates. Prefetching, link scanners and browser history /
+  access logs can no longer trigger them or carry their token.
+- Send test e-mail is rate limited to once per 30 seconds per session.
+- Security History: more defensive handling of legacy rows without a check key
+  (re-indexed arrays, missing entries), and a redundant database lookup in
+  `clear()` removed.
+- Kept as GET with a token: the CSV / JSON exports and the Disk Usage rescan
+  (read-only; a plain link is how a download works).
+- Not changed: the CSV output-buffer handling (rows are built before streaming
+  and a failure there would not be improved by try/finally), the `pgsql`
+  server-type check (Joomla reports `postgresql` for its PostgreSQL driver) and
+  the clock-skew query (Joomla supports only MySQL/MariaDB/PostgreSQL; an
+  unsupported engine already yields a warning that the check could not run).
+- Notification recipients (task options and the growth alert setting) are
+  split on comma, semicolon or whitespace and validated; invalid addresses are
+  ignored (the task logs how many) instead of being passed to the mailer
+  (task plugin 1.4.4).
 
-### Added
-- New Security Check "SSL certificate trusted": validates the certificate of the site's own domain the way a browser does (trusted chain, host name). The existing "SSL certificate expiry" check deliberately reads the certificate without validating it, so it only tells you about expiry; an untrusted, self-signed or mismatched certificate is now reported separately as a warning with the OpenSSL reason. A refused or unreachable port 443 is reported as inconclusive, not as a trust failure.
+### Changed (CLI command and quick icon, from a code review)
+- `fgsystemreport:check --url` now rejects anything that is not a full
+  http:// or https:// address with a clear error (exit code 3) instead of
+  silently ignoring it; `PHP_SELF` is set as well, so the site root also
+  resolves under CGI-style setups (console plugin 1.0.3).
+- Quick icon: an unparsable `run_at` value no longer produces a bogus
+  "outdated for N days" label (quickicon plugin 1.0.4).
+- Not changed: the JSON export properties (every check is built with all of
+  label/status/value/note) and the Symfony `addCommand()` comment (Symfony
+  Console 7.4 does provide it).
 
-### Changed
-- HSTS check: certificate verification follows the new "Verify TLS certificate in exposure checks" option (default off, as before).
+### Checked, no change needed
+- Symbolic-link loops: the scan does not follow directory symlinks
+  (`FOLLOW_SYMLINKS` is not set), verified with a self-referencing link.
+- Accepted-risk notes are escaped wherever they are shown (Security page, PDF,
+  printable report; the CLI strips tags), so a note with HTML cannot execute;
+  stripping tags on input would only mangle legitimate text such as `a < b`.
+- The uninstall SQL already drops every table the component creates
+  (history, diskscan, alert, dbscan, event, accepted), for MySQL and PostgreSQL.
+- `getIdentity()->username ?? ''` does not raise a warning when there is no
+  identity (the null-coalescing operator covers the whole chain).
+- The reported SVG `viewBox` / `points` separators and the CSS spacing errors
+  do not exist in the source: the files are correct (a whitespace-stripped
+  preview of the repository was the source of those findings).
 
-## [1.13.11]
+### Fixed (system plugin, from a code review)
+- Global Configuration changes: `configuration.php` stores real booleans
+  (e.g. `debug = false`) while the form posts "0"/"1", so saving the page with
+  no change could log a bogus "debug: - > 0". Values are now normalised before
+  they are compared.
+- The plugin's own error log (`fgsystemreport_events.log`) is written to the
+  log folder configured in Global Configuration (`log_path`) instead of a
+  hard-coded `administrator/logs`; the History diagnostics read the same file.
+- Uninstall events: the extension name is also taken from the installer's
+  `getManifest()` when the manifest property is not available.
+- Not changed: the claim that `.log` files may be downloadable - Joomla's log
+  folders ship with their own access protection and no secrets are written
+  there.
 
-### Changed
-- Exposure probes (sensitive files, directory listings): the response body is now capped at 16 KB with a write callback that aborts the transfer, so a server that ignores the `Range` header and serves a huge file (for example a large `error_log`) is no longer downloaded in full. Both probes share one fetch routine; timeouts are unchanged. Tested against a 50 MB file: 16 KB read, no measurable memory use.
-- New option "Verify TLS certificate in exposure checks" (Options, default off). The probes request this very site, so by default a self-signed or staging certificate must not hide an exposed file; turn it on to require a valid certificate.
+### Changed (accepted risk, from a code review)
+- Accepting a finding again (replacing an existing acceptance) now runs the
+  delete + insert in one database transaction, so a failed insert can no
+  longer leave the finding without any acceptance.
 
-## [1.13.10]
-
-### Security
-- The operations that run on a plain GET link (Security Check "Check again" `force=1`, Disk Usage rescan `rescan=1`, Database re-run `refresh=1`, Report "fresh data") had no CSRF protection, so a crafted link could make a logged-in administrator trigger an expensive scan. The links and the Report form now carry the session token and the views run the operation only when the token is valid; otherwise the page shows the cached data as usual.
-
-## [1.13.9]
-
-### Security
-- The PDF actions (`generatePDF`, `emailPDF`) required only `core.manage`, while the Report page and the Security Check need `core.admin`. The PDF can contain Security Check results and technical site details, and the e-mail variant lets the caller choose the recipient. Both actions now require `core.admin` in the controller.
-- Dashboard: the Security, Report tiles and the PDF section are shown only to users with `core.admin`; others no longer see links that end in a 403.
-
-## [1.13.8]
-
-### Changed
-- Growth alerts now also watch the **total size** (site for Disk Usage, database for the Database page) between two snapshots, using the same limits, so growth spread over many small items is caught.
-- Growth alerts now report **new** folders/tables that were not in the previous snapshot. They are judged by the absolute limit only; for the Disk Usage top-N list the previous size is taken as the smallest folder that was listed, so the shown growth is a lower bound. For database tables (listed completely) the previous size is 0.
-
-## [1.13.7]
-
-### Fixed
-- Scheduled notification (task plugin 1.4.1): the previous and current state were compared by the translated check label; they are now compared by the stable check key, so changing the language no longer causes false alerts. State saved by an older version is taken once as a new baseline (no notification on the first run after the update).
-- Scheduled notification: the new state was saved before the e-mail was sent, so a failed send lost the alert. The state is now saved only after a successful send (or when there is nothing to send), so a failed send is retried at the next run.
-- Super User recipients and the new-Super-User detection used the hardcoded group id 8. They now use every group that holds core.admin (new `FgsystemreportHelper::getSuperUserGroupIds()`), the same as the Security Check; growth alerts use it too.
-
-## [1.13.6]
-
-### Changed
-- Dashboard statistics: the PHP and database versions are coloured by the matching Security Check (green supported, amber ending within 6 months or outdated, red end-of-life or unsupported).
-
-## [1.13.5]
-
-### Changed
-- Dashboard statistics: values are shown in the accent colour again (they were plain text after the redesign); the Joomla version is green when current and amber when an update is available.
-
-## [1.13.4]
-
-### Added
-- New Security Check "Extension records without files": lists non-core extensions that are registered in Joomla but whose folder is missing on disk (orphaned records).
-
-### Fixed
-- "Extensions without an active update site" no longer lists orphaned records (extensions whose files are gone); they are reported by the new check instead.
-
-## [1.13.3]
-
-### Fixed
-- "Extensions without an active update site" counted every extension, including Joomla core extensions and the individual members of packages (which never have their own update site), which inflated the number. It now counts only non-core extensions that are not package members, and the note lists the first 12 of them by name.
-
-## [1.13.2]
-
-### Fixed
-- Header score pill and history disagreed with the Security Check page after accepting or revoking a risk (the pill shows the latest recorded run). The Security Check page now records a run whenever its score differs from the latest recorded one.
-
-## [1.13.1]
-
-### Changed
-- Slovak (sk-SK): the 36 missing language keys are translated, so the interface is now fully Slovak (en-GB, sk-SK and de-DE all have 573 keys).
+### Internal
+- Added `tests/` - dependency-free tests (`php tests/run.php`, 27 cases) for
+  the security score, disk scan (limits, exclude list, dangling symlink,
+  symlink loop, TopHeap), history comparison, growth detection and accepted
+  risk, plus a GitHub Actions workflow that runs them on PHP 8.1 and 8.3.
+  The tests are not part of the installable package.
+- Removed the unused `getReportData()` from the component model and the
+  template comment block at the end of `config.xml`.
 
 ## [1.13.0]
 
@@ -664,37 +515,21 @@ Three additions inspired by a review of a third-party security extension
 
 ## [1.12.6]
 
-### Fixed
-- Change timeline: plugin/extension enable and disable still was not recorded on Joomla 5.4. System plugin 1.0.3 additionally recognises the toggle request itself (Plugins and Extensions managers, publish/unpublish tasks), independent of the state-change event.
-
-## [1.12.5]
-
-### Fixed
-- Change timeline: enabling/disabling a plugin from the Plugins manager was not recorded (it fires onContentChangeState, not onExtensionChangeState). System plugin 1.0.2 listens to both.
+_Includes the changes of the former releases 1.12.1 - 1.12.5 (removed from GitHub)._
 
 ### Changed
+- Table text is larger and heavier (15px, medium weight, bold first column) for better readability.
 - Timeline badges are colour-coded by type (install blue, update/enable green, uninstall red, disable grey, configuration amber).
 
-## [1.12.4]
-
 ### Fixed
+- Extensions: the "Official Joomla Project" badge was unreadable (dark text on a solid blue background); it now uses the soft accent badge style.
 - Change timeline recorded nothing: `insertObject()` takes its object by reference and was given a cast expression, which throws on Joomla 5/6. Fixed there and in the same call used by the disk-growth alerts (database table row and Joomla message).
-
-## [1.12.3]
+- Change timeline: enabling/disabling a plugin from the Plugins manager was not recorded (it fires onContentChangeState, not onExtensionChangeState). System plugin 1.0.2 listens to both.
+- Change timeline: plugin/extension enable and disable still was not recorded on Joomla 5.4. System plugin 1.0.3 additionally recognises the toggle request itself (Plugins and Extensions managers, publish/unpublish tasks), independent of the state-change event.
 
 ### Added
 - History: when the change timeline is empty it now shows diagnostics (system plugin installed/enabled, events table available, last recording error).
 - System plugin 1.0.1 writes handler errors to `administrator/logs/fgsystemreport_events.log` instead of swallowing them silently.
-
-## [1.12.2]
-
-### Fixed
-- Extensions: the "Official Joomla Project" badge was unreadable (dark text on a solid blue background); it now uses the soft accent badge style.
-
-## [1.12.1]
-
-### Changed
-- Table text is larger and heavier (15px, medium weight, bold first column) for better readability.
 
 ## [1.12.0]
 
@@ -724,29 +559,23 @@ Three additions inspired by a review of a third-party security extension
 
 ## [1.10.0]
 
+_Includes the changes of the former releases 1.9.0 and 1.9.1 (removed from GitHub): the console command and quick icon plugins come from 1.9.0, their Home-page crash fix from 1.9.1._
+
 ### Added
+- **Console command** `fgsystemreport:check` (new plugin `plg_console_fgsystemreport` 1.0.0): runs the full Security Check from the CLI / cron (`php cli/joomla.php fgsystemreport:check`). Options: `--format=text|json`, `--fail-on=danger|warning|never`, `--url=https://example.com` (site address for the HTTP-based checks when `live_site` is not set), `--no-record`. Exit codes: 0 OK, 1 warnings (with `--fail-on=warning`), 2 critical, 3 could not run. Runs are recorded in the Security History with source "CLI".
+- **Quick icon on the administrator Home page** (new plugin `plg_quickicon_fgsystemreport` 1.0.0): shows the latest recorded Security Check score, coloured by severity (and flagged when older than 7 days), linking to the Security page. It only reads the latest history row, never runs a live check, and is shown only to users with `core.manage` on the component.
+- Security History source "CLI" (EN/SK/DE).
 - **Errors page** (new submenu item, `core.admin` only): reads the tail (last 1 MB) of the Joomla log folder error logs and PHP `error_log` files, groups identical errors by cause and attributes each group to the extension, template or Joomla core folder whose file raised it ("who causes the errors"). Period 24 h / 7 d / 30 d, severity filter, and a "spike" flag when an error is 3x more frequent in the last day than the daily average of the six days before. Read-only, no per-request cost.
 - **Change timeline** (new plugin `plg_system_fgsystemreport` 1.0.0): records extension installs, updates and removals, enable/disable, and changes of key Global Configuration settings (debug, error reporting, caching, offline, mailer, force SSL, SEF, gzip, session handler, ...). Shown on the Security History page as dashed markers in the score chart, a "Changes" count per run (tooltip lists them) and a "Change timeline" table. Does nothing on ordinary page requests.
 - Security Check, 7 new checks (now 32): **Mail DNS** (SPF / DMARC / MX of the site domain), **Scheduled tasks** overdue by more than a day (cron not running), **OPcache** off or full, **HSTS** (informational), **PHP files in /images**, **Leftover files in the web root** (installation folder, copies of configuration.php, backups/dumps, adminer/phpinfo-style scripts) and **PHP fatal errors in the last 24 h**.
 - New table `#__fgsystemreport_event` (created on first use; removed on uninstall).
 
 ### Changed
+- The package now contains four extensions (component, task, console and quick icon plugins). The installer script enables the new plugins on a fresh install and on the first update that brings them; later updates never re-enable a plugin you disabled.
 - The package now contains five extensions; the installer enables the new system plugin on a fresh install and on the first update that brings it.
-
-## [1.9.1]
 
 ### Fixed
 - Console and quick icon plugins (both 1.0.1): the service provider called `setDatabase()`, which these plugins do not have, so the administrator Home page crashed with "Call to undefined method ... setDatabase()" as soon as the quick icon plugin was enabled.
-
-## [1.9.0]
-
-### Added
-- **Console command** `fgsystemreport:check` (new plugin `plg_console_fgsystemreport` 1.0.0): runs the full Security Check from the CLI / cron (`php cli/joomla.php fgsystemreport:check`). Options: `--format=text|json`, `--fail-on=danger|warning|never`, `--url=https://example.com` (site address for the HTTP-based checks when `live_site` is not set), `--no-record`. Exit codes: 0 OK, 1 warnings (with `--fail-on=warning`), 2 critical, 3 could not run. Runs are recorded in the Security History with source "CLI".
-- **Quick icon on the administrator Home page** (new plugin `plg_quickicon_fgsystemreport` 1.0.0): shows the latest recorded Security Check score, coloured by severity (and flagged when older than 7 days), linking to the Security page. It only reads the latest history row, never runs a live check, and is shown only to users with `core.manage` on the component.
-- Security History source "CLI" (EN/SK/DE).
-
-### Changed
-- The package now contains four extensions (component, task, console and quick icon plugins). The installer script enables the new plugins on a fresh install and on the first update that brings them; later updates never re-enable a plugin you disabled.
 
 ## [1.8.0]
 
@@ -823,6 +652,21 @@ Three additions inspired by a review of a third-party security extension
 
 ## [1.5.0]
 
+_Includes the changes of the former releases 1.4.9 and 1.4.10 (removed from GitHub)._
+
+### Changed
+- The package's update server URL now points to the `master` branch
+  (`.../pkg_fgsystemreport/master/updates.xml`) - the repository's default
+  branch is `master`, not `main`. 1.4.7 and 1.4.8 pointed to `main`;
+  install 1.4.9.
+- Release workflow attaches only the package (`pkg_fgsystemreport_vX.X.X.zip`)
+  to GitHub releases; the standalone component/plugin ZIPs no longer appear
+  there (the component has no update server of its own, only the package
+  does). `build.sh` still builds them into `dist/`.
+- README: removed the note about standalone ZIPs, `bash build.sh` in the
+  release steps.
+- Maintenance release; also used to verify the update path 1.4.9 -> 1.4.10.
+
 ### Added
 - Disk Usage: comparison with the previous scan. New "Change" column per
   folder (red = growth, green = shrink, "new in list" badge), total change
@@ -832,25 +676,6 @@ Three additions inspired by a review of a third-party security extension
   setting, max 60 snapshots per exclude-set).
 - Installed Extensions: "Update all (N)" button when updates are available.
   Opens Joomla's update list with filters cleared (select all, then Update).
-
-## [1.4.10]
-
-### Changed
-- Release workflow attaches only the package (`pkg_fgsystemreport_vX.X.X.zip`)
-  to GitHub releases; the standalone component/plugin ZIPs no longer appear
-  there (the component has no update server of its own, only the package
-  does). `build.sh` still builds them into `dist/`.
-- README: removed the note about standalone ZIPs, `bash build.sh` in the
-  release steps.
-- Maintenance release; also used to verify the update path 1.4.9 -> 1.4.10.
-
-## [1.4.9]
-
-### Changed
-- The package's update server URL now points to the `master` branch
-  (`.../pkg_fgsystemreport/master/updates.xml`) - the repository's default
-  branch is `master`, not `main`. 1.4.7 and 1.4.8 pointed to `main`;
-  install 1.4.9.
 
 ## [1.4.8]
 
