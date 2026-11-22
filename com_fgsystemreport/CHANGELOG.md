@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.7]
+
+### Changed
+- "Web application firewall" row: the text now says a firewall extension is
+  *enabled* and that only its presence is checked, not whether its rules are
+  switched on (the free edition of some firewall extensions has none).
+- When SiteOps Suite refuses the exposed-files probes, the note also says
+  where to trust the server's address (Security > IP addresses > Add an
+  address > Trusted).
+
 ## [1.18.6]
 
 ### Added - "Error pages show server details" row

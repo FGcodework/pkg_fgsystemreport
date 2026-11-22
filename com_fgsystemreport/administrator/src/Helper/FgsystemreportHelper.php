@@ -529,7 +529,8 @@ class FgsystemreportHelper
 			$fw = implode(', ', array_unique(array_values($exposedCheck->blocked)));
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED_VALUE', $fw),
 				Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED', implode(', ', array_keys($exposedCheck->blocked)), $fw,
-					!empty($_SERVER['SERVER_ADDR']) ? ' (' . $_SERVER['SERVER_ADDR'] . ')' : ''));
+					!empty($_SERVER['SERVER_ADDR']) ? ' (' . $_SERVER['SERVER_ADDR'] . ')' : '')
+				. (in_array('SiteOps Suite', $exposedCheck->blocked, true) ? ' ' . Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED_SITEOPS') : ''));
 		} elseif ($exposedCheck->soft404) {
 			// Judged by the content of the files; the site itself answers 200 to addresses that do not exist
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::_('JNONE'),
