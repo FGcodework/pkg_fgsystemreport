@@ -521,9 +521,6 @@ class FgsystemreportHelper
 		if (!$exposedCheck->available) {
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::_('JNONE'),
 				Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_CHECK_FAILED'));
-		} elseif (!$exposedCheck->reliable) {
-			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_UNKNOWN'),
-				Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_SOFT_404'));
 		} elseif (!empty($exposedCheck->exposed)) {
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'danger', (string) count($exposedCheck->exposed),
 				Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_FOUND', implode(', ', $exposedCheck->exposed)));
@@ -533,9 +530,22 @@ class FgsystemreportHelper
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED_VALUE', $fw),
 				Text::sprintf('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_BLOCKED', implode(', ', array_keys($exposedCheck->blocked)), $fw,
 					!empty($_SERVER['SERVER_ADDR']) ? ' (' . $_SERVER['SERVER_ADDR'] . ')' : ''));
+		} elseif ($exposedCheck->soft404) {
+			// Judged by the content of the files; the site itself answers 200 to addresses that do not exist
+			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'info', Text::_('JNONE'),
+				Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_SOFT_404_CHECKED'));
 		} else {
 			$add('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES', 'ok', Text::_('JNONE'),
 				Text::_('COM_FGSYSTEMREPORT_SEC_EXPOSED_FILES_NONE'));
+		}
+
+		// 3b2) Error pages that show server paths or a stack trace
+		if ($exposedCheck->available) {
+			if ($exposedCheck->leak) {
+				$add('COM_FGSYSTEMREPORT_SEC_ERROR_LEAK', 'warning', Text::_('JYES'), Text::_('COM_FGSYSTEMREPORT_SEC_ERROR_LEAK_FOUND'));
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_ERROR_LEAK', 'ok', Text::_('JNO'), '');
+			}
 		}
 
 		// 3c) Web application firewall: a Joomla extension (SiteOps Suite, Admin Tools ...) or
@@ -1690,7 +1700,9 @@ class FgsystemreportHelper
 	 *                  of confirmed-exposed URLs, only meaningful when
 	 *                  both of the above are true), ->blocked (path =>
 	 *                  firewall name, probes a firewall refused: those
-	 *                  paths could not be judged).
+	 *                  paths could not be judged), ->soft404 (bool, a
+	 *                  nonexistent address answers 200), ->leak (bool, an
+	 *                  error page shows paths or a stack trace).
 	 */
 	public static function checkExposedSensitiveFiles(): object
 	{
@@ -1699,6 +1711,8 @@ class FgsystemreportHelper
 			'reliable'  => false,
 			'exposed'   => [],
 			'blocked'   => [],
+			'soft404'   => false,
+			'leak'      => false,
 		];
 
 		if (!function_exists('curl_multi_init')) {
@@ -1744,17 +1758,18 @@ class FgsystemreportHelper
 
 		$canaryResponse = $responses[$canaryPath];
 
-		// A well-behaved server returns 404 (or similar) for a random,
-		// non-existent path. If it returns success instead, every "200"
-		// this check would otherwise report is meaningless.
-		if (in_array($canaryResponse->httpCode, [200, 206], true)) {
-			return $result;
-		}
-
+		// A well-behaved server answers 404 to a random, nonexistent path. When it
+		// answers success instead (a "soft 404"), a 200 alone proves nothing, so a
+		// file counts only by its content (HardeningHelper::exposedByContent()).
+		$result->soft404  = in_array($canaryResponse->httpCode, [200, 206], true);
 		$result->reliable = true;
+
+		$answers = [];
 
 		foreach ($paths as $path => $signature) {
 			$response = $responses[$path];
+
+			$answers[$path] = ['code' => (int) $response->httpCode, 'body' => (string) $response->body];
 
 			if (!in_array($response->httpCode, [200, 206], true)) {
 				// A firewall refused the probe: the file itself was never looked at
@@ -1763,12 +1778,27 @@ class FgsystemreportHelper
 				if ($fw !== '') {
 					$result->blocked[$path] = $fw;
 				}
+			}
+		}
 
+		$exposedPaths = HardeningHelper::exposedByContent($answers, $paths, (string) $canaryResponse->body);
+
+		foreach ($exposedPaths as $path) {
+			$result->exposed[] = $root . '/' . $path;
+		}
+
+		// Error pages that show paths or a stack trace: the page of a nonexistent address
+		// and of the probes (a file that really is exposed is reported above, not here)
+		$jroot = defined('JPATH_ROOT') ? JPATH_ROOT : '';
+
+		foreach ($responses as $key => $response) {
+			if (in_array($key, $exposedPaths, true)) {
 				continue;
 			}
 
-			if (preg_match($signature, $response->body)) {
-				$result->exposed[] = $root . '/' . $path;
+			if (HardeningHelper::errorPageLeak((string) $response->body, $jroot)) {
+				$result->leak = true;
+				break;
 			}
 		}
 

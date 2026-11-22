@@ -28,6 +28,25 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.6]
+
+### Added - "Error pages show server details" row
+- The Security Check now looks at the page a nonexistent address gives (and
+  at the answers of the exposed-files probes) for a stack trace, the file of
+  an exception, a PHP warning with a path or the path of the Joomla
+  installation. Such a page tells an attacker where the site lives and which
+  code runs; it is a warning. Found on a live site: a developer plugin
+  (system-diagnostic) printed every exception to every visitor, whatever the
+  debug setting.
+
+### Changed - exposed-files check works on "soft 404" sites
+- When a nonexistent address answers HTTP 200 (as that plugin made the site
+  do), the check used to give up ("Inconclusive"). A file now counts as
+  exposed when the answer is a success, carries the mark of that file (e.g.
+  `[core]` for `.git/config`) and the page of the nonexistent address does
+  not carry it too. Without a finding the row is informational and notes the
+  soft 404, which search engines may take for real pages.
+
 ## [1.18.5]
 
 ### Changed - exposed-files probes and a firewall in front of the site

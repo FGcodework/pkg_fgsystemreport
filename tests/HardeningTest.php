@@ -134,4 +134,51 @@ return [
         assertSame(['Admin Tools'], $r['disabled']);
         assertSame(['active' => [], 'disabled' => []], H::firewallsFromPlugins([]));
     },
+    'error page leak: the page seen on mechanizmysevcik.sk is recognised' => function () {
+        $page = "<h2>Error: Stránka nebola nájdená</h2>Exception Code: 404<br />\nException File: /data/2/0/x/web/libraries/src/Router/Router.php<br />\nException Trace: <br />#0 /data/2/0/x/web/libraries/src/Application/SiteApplication.php(767): Joomla\\CMS\\Router\\Router->parse()<br />";
+        assertTrue(H::errorPageLeak($page));
+    },
+
+    'error page leak: PHP warnings, stack traces and the installation path' => function () {
+        assertTrue(H::errorPageLeak('<br /><b>Warning</b>:  Undefined variable $x in <b>/home/u/web/index.php</b> on line <b>12</b><br />'));
+        assertTrue(H::errorPageLeak('Fatal error: Uncaught Exception: boom in /var/www/a.php:3'. "\nStack trace:\n#0 {main}"));
+        assertTrue(H::errorPageLeak('PHP Warning:  foo in /srv/site/x.php on line 4'));
+        assertTrue(H::errorPageLeak('See /var/www/html/site/libraries/x', '/var/www/html/site'));
+        // Windows paths: the backslashes of the root and of the page are compared alike
+        assertTrue(H::errorPageLeak('in C:\\inetpub\\site\\libraries\\x.php', 'C:\\inetpub\\site'));
+    },
+
+    'error page leak: an ordinary 404 page is not one' => function () {
+        assertSame(false, H::errorPageLeak(''));
+        assertSame(false, H::errorPageLeak('<html><title>404 Not Found</title><h1>Page not found</h1><p>The page does not exist. Warning: do not panic.</p></html>', '/var/www/html/site'));
+        assertSame(false, H::errorPageLeak('<p>Exception handling is described in our blog.</p>', '/x'));
+        // a short root such as "/" or "/a" must not match every page
+        assertSame(false, H::errorPageLeak('<a href="/a/b">link</a>', '/a'));
+    },
+
+    'soft 404: a file counts by its content, the ordinary page does not' => function () {
+        $sig = ['.env' => '/^\s*[A-Za-z_][A-Za-z0-9_]*\s*=/m', 'phpinfo.php' => '/phpinfo\(\)|PHP Version/i', '.git/config' => '/\[core\]/'];
+        $page = '<html><title>Home</title><body>Welcome</body></html>';
+        $answers = [
+            '.env'        => ['code' => 200, 'body' => $page],
+            'phpinfo.php' => ['code' => 200, 'body' => $page],
+            '.git/config' => ['code' => 200, 'body' => "[core]\n\trepositoryformatversion = 0"],
+        ];
+        assertSame(['.git/config'], H::exposedByContent($answers, $sig, $page));
+    },
+
+    'soft 404: a mark that the nonexistent-address page carries too proves nothing' => function () {
+        $sig = ['phpinfo.php' => '/phpinfo\(\)|PHP Version/i'];
+        $page = '<p>Tutorial: how to read the PHP Version in phpinfo()</p>';
+        $answers = ['phpinfo.php' => ['code' => 200, 'body' => $page]];
+        assertSame([], H::exposedByContent($answers, $sig, $page));
+        assertSame(['phpinfo.php'], H::exposedByContent($answers, $sig, '<p>not found</p>'));
+    },
+
+    'exposed files: only a success answer can expose a file' => function () {
+        $sig = ['.env' => '/^\s*[A-Za-z_]+\s*=/m'];
+        assertSame([], H::exposedByContent(['.env' => ['code' => 403, 'body' => 'APP_KEY=abc']], $sig, ''));
+        assertSame(['.env'], H::exposedByContent(['.env' => ['code' => 206, 'body' => 'APP_KEY=abc']], $sig, ''));
+        assertSame([], H::exposedByContent([], $sig, ''));
+    },
 ];

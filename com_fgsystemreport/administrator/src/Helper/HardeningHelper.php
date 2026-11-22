@@ -249,4 +249,75 @@ final class HardeningHelper
         // Sucuri / Imunify360 refuse with the mark of their own proxy on the response
         return \in_array($name, ['Sucuri', 'Imunify360'], true) ? $name : '';
     }
+
+    /**
+     * Does an error page (or any response) show server internals: a stack trace,
+     * the file and line of an exception, a PHP warning with a path, or the path
+     * of the Joomla installation? Such a page tells an attacker where the site
+     * lives and which code runs.
+     *
+     * @param   string  $body  start of the response
+     * @param   string  $root  file system root of the site (JPATH_ROOT), '' to skip that test
+     *
+     * @since   1.18.6
+     */
+    public static function errorPageLeak(string $body, string $root = ''): bool
+    {
+        if ($body === '') {
+            return false;
+        }
+
+        $patterns = [
+            // exception dump: "Exception File: /path/x.php", "Exception Trace:"
+            '/Exception\s+(File|Line|Trace)\s*:/i',
+            // PHP stack trace: "#0 /path/x.php(12): Class->method()"
+            '/#0\s+\S+\.php\(\d+\)/',
+            '/Stack trace:/i',
+            // PHP warning / notice / fatal error printed into the page
+            '/(Warning|Fatal error|Notice|Deprecated|Parse error|Uncaught [A-Za-z\\\\]+)\s*(<\/b>)?:.{0,300}?\sin\s+(<b>)?\S+\.php(<\/b>)?\s+on\s+line/is',
+        ];
+
+        foreach ($patterns as $p) {
+            if (preg_match($p, $body)) {
+                return true;
+            }
+        }
+
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+
+        return strlen($root) >= 6 && strpos(str_replace('\\', '/', $body), $root . '/') !== false;
+    }
+
+    /**
+     * Which probed files really are there: the answer is a success, carries the
+     * mark of that file, and the page a nonexistent address gives does not carry
+     * it too. That last condition makes the test independent of "soft 404" sites,
+     * where a nonexistent address answers 200 with an ordinary page.
+     *
+     * @param   array<string,array{code:int,body:string}>  $responses   path => answer
+     * @param   array<string,string>                       $signatures  path => regex of the file's content
+     * @param   string                                     $canaryBody  answer to a random nonexistent address
+     *
+     * @return  list<string>  paths
+     *
+     * @since   1.18.6
+     */
+    public static function exposedByContent(array $responses, array $signatures, string $canaryBody): array
+    {
+        $found = [];
+
+        foreach ($signatures as $path => $signature) {
+            $r = $responses[$path] ?? null;
+
+            if ($r === null || !\in_array((int) $r['code'], [200, 206], true)) {
+                continue;
+            }
+
+            if (preg_match($signature, (string) $r['body']) && !preg_match($signature, $canaryBody)) {
+                $found[] = $path;
+            }
+        }
+
+        return $found;
+    }
 }

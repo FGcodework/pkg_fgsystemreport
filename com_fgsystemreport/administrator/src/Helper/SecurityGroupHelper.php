@@ -47,7 +47,7 @@ final class SecurityGroupHelper
         'PHP_SETTINGS' => 'server', 'PHP_LIMITS' => 'server', 'EXEC_FUNCTIONS' => 'server', 'OPCACHE' => 'server',
         'DISK_FREE' => 'server', 'CLOCK_SKEW' => 'server', 'FLOCK' => 'server', 'EXTERNAL_IP' => 'server',
         // Joomla configuration
-        'DEBUG' => 'config', 'ERROR_REPORTING' => 'config', 'CONFIG' => 'config', 'SYSTEM_CACHE' => 'config',
+        'DEBUG' => 'config', 'ERROR_LEAK' => 'config', 'ERROR_REPORTING' => 'config', 'CONFIG' => 'config', 'SYSTEM_CACHE' => 'config',
         // database, mail and operation
         'DB_PREFIX' => 'ops', 'DB_BLOAT' => 'ops', 'SQL_MODE' => 'ops', 'ORPHAN_ASSETS' => 'ops', 'ORPHAN_EXT' => 'ops',
         'BACKUP' => 'ops', 'MAIL_DNS' => 'ops', 'SCHED' => 'ops', 'FATALS' => 'ops',
