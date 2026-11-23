@@ -34,29 +34,43 @@ final class SecurityPdfHtml
     ];
 
     /**
-     * HTML for TCPDF::writeHTML(): the column heads once, then one table per
-     * theme (kept together on a page when it fits), each opened by a pale grey
-     * band with the theme, its number of checks and its problems.
+     * HTML pieces for TCPDF::writeHTML(), one per theme. The column heads are
+     * part of the first piece. Each theme is a table whose first row is a pale
+     * grey band (theme, number of checks, problems); when a theme runs over a
+     * page the band is repeated at the top of the next one. The caller starts
+     * a piece on a new page only when its first rows would not fit
+     * (TCPDF::checkPageBreak), so pages are filled instead of left half empty.
      *
      * @param   object[]  $checks  rows with key, label, status, value, note (and accepted / accept_expired)
      *
+     * @return  string[]
+     *
      * @since   1.18.8
      */
-    public static function render(array $checks): string
+    public static function chunks(array $checks): array
     {
-        $html = self::table(self::head(), 'font-weight:bold;');
+        $chunks = [];
 
         foreach (SecurityGroupHelper::group($checks) as $gid => $rows) {
-            $html .= self::table(self::band($gid, $rows) . self::rows($rows), '', true);
+            $chunks[] = self::table('<thead>' . self::band($gid, $rows) . '</thead>' . self::rows($rows));
         }
 
-        return $html;
+        if ($chunks) {
+            $chunks[0] = self::table(self::head(), 'font-weight:bold;') . $chunks[0];
+        }
+
+        return $chunks;
     }
 
-    private static function table(string $inner, string $style = '', bool $keepTogether = false): string
+    /** All pieces in one string (tests, or a caller that does not manage page breaks). */
+    public static function render(array $checks): string
     {
-        return '<table cellpadding="4" ' . ($keepTogether ? 'nobr="true" ' : '') . 'style="border-collapse:collapse; width:100%;' . $style . '">'
-            . $inner . '</table>';
+        return implode('', self::chunks($checks));
+    }
+
+    private static function table(string $inner, string $style = ''): string
+    {
+        return '<table cellpadding="4" style="border-collapse:collapse; width:100%;' . $style . '">' . $inner . '</table>';
     }
 
     private static function head(): string

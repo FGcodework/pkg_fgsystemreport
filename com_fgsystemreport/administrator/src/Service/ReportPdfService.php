@@ -175,6 +175,7 @@ class ReportPdfService
                     </tr>
                 </table>';
 
+            $pdf->SetFont('dejavusanssub', '', 10);
             $pdf->writeHTML($summaryHtml, true, false, true, false, '');
             $pdf->Ln(4);
 
@@ -183,9 +184,16 @@ class ReportPdfService
             $pdf->Cell(0, 10, Text::_('COM_FGSYSTEMREPORT_SEC_HEADING'), 0, 1, 'L');
             $pdf->Ln(1);
 
-            $secHtml = SecurityPdfHtml::render($securityChecks);
+            // Regular weight: the font style of the heading above would otherwise make the whole table bold
+            $pdf->SetFont('dejavusanssub', '', 10);
 
-            $pdf->writeHTML($secHtml, true, false, true, false, '');
+            // A theme is written as it comes and flows over pages; it only moves to a new page when
+            // its band and first rows would not fit (no half empty pages, no band alone at the bottom)
+            foreach (SecurityPdfHtml::chunks($securityChecks) as $chunk) {
+                $pdf->ensureSpace(32);
+                $pdf->writeHTML($chunk, true, false, true, false, '');
+            }
+
             $pdf->Ln(4);
         }
 
@@ -271,6 +279,7 @@ class ReportPdfService
             }
 
             $html1 .= '</table>';
+            $pdf->SetFont('dejavusanssub', '', 10);
             $pdf->writeHTML($html1, true, false, true, false, '');
         }
         // show system information
@@ -336,6 +345,7 @@ class ReportPdfService
             }
 
             $html1 .= '</table>';
+            $pdf->SetFont('dejavusanssub', '', 10);
             $pdf->writeHTML($html1, true, false, true, false, '');
         }
         // Scan template overrides
@@ -393,6 +403,7 @@ class ReportPdfService
                 }
 
                 $html3 .= '</table>';
+                $pdf->SetFont('dejavusanssub', '', 10);
                 $pdf->writeHTML($html3, true, false, true, false, '');
                 $pdf->Ln(5);
             }
@@ -408,8 +419,8 @@ class ReportPdfService
         $html2 = '
             <table cellspacing="0" cellpadding="3" style="border-collapse: collapse; width:100%;">
                 <tr>
-                    <th align="center" style="width:5%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">#</th>
-                    <th align="center" style="width:28%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_NAME').'</th>
+                    <th align="center" style="width:7%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">#</th>
+                    <th align="center" style="width:26%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_NAME').'</th>
                     <th align="center" style="width:15%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_TYPE').'</th>
                     <th align="center" style="width:12%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_STATE').'</th>
                     <th align="center" style="width:20%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_CURRENT_VERSION').'</th>
@@ -466,8 +477,8 @@ class ReportPdfService
                 $versionCell = htmlspecialchars($ext->available_version);
             }
             $html2 .= '<tr>
-                <td align="center" style="width:5%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$counter.'</td>
-                <td align="left" style="width:28%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$nameCell.'</td>
+                <td align="center" style="width:7%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$counter.'</td>
+                <td align="left" style="width:26%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$nameCell.'</td>
                 <td align="center" style="width:15%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$typeLabel.'</td>
                 <td align="center" style="width:12%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$stateCell.'</td>
                 <td align="center" style="width:20%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.htmlspecialchars($ext->installed_version).'</td>
@@ -476,6 +487,7 @@ class ReportPdfService
             $counter++;
 
             if (($counter - 1) % 100 === 0) {
+                $pdf->SetFont('dejavusanssub', '', 10);
                 $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
                 $html2 = $extHead;
             }
@@ -483,7 +495,8 @@ class ReportPdfService
 
         // Remainder (or the header-only table when there are no extensions)
         if ($html2 !== $extHead || $counter === 1) {
-            $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
+            $pdf->SetFont('dejavusanssub', '', 10);
+                $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
         }
 
         $pdf->Ln(5);

@@ -21,6 +21,16 @@ class FgSystemPDF extends \TCPDF
     protected $showDomain;
     protected $showJoomlaVersion;
 
+    /**
+     * Start a new page when less than $h mm is left on this one (checkPageBreak() is protected in TCPDF).
+     *
+     * @since  1.18.9
+     */
+    public function ensureSpace(float $h): void
+    {
+        $this->checkPageBreak($h);
+    }
+
     public function setShowJoomlaVersion($val)
     {
         $this->showJoomlaVersion = $val;

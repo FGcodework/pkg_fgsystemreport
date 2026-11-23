@@ -65,4 +65,23 @@ return [
         $html = P::render([]);
         assertSame(false, strpos($html, 'COM_FGSYSTEMREPORT_SECGROUP_'));
     },
+    'chunks: one piece per theme, the column heads only in the first' => function () {
+        $c = P::chunks([pdf_row('JOOMLA_CORE', 'ok'), pdf_row('MFA', 'ok'), pdf_row('HSTS', 'ok')]);
+        assertSame(3, count($c));
+        assertTrue(strpos($c[0], 'COM_FGSYSTEMREPORT_SEC_COL_CHECK') !== false);
+        assertSame(false, strpos($c[1], 'COM_FGSYSTEMREPORT_SEC_COL_CHECK'));
+        assertSame(false, strpos($c[2], 'COM_FGSYSTEMREPORT_SEC_COL_CHECK'));
+        assertSame([], P::chunks([]));
+    },
+
+    'chunks: the theme band is a repeating head and rows are not split over pages' => function () {
+        $c = P::chunks([pdf_row('MFA', 'ok', 'ROW_A'), pdf_row('FIREWALL', 'ok', 'ROW_B')]);
+        assertTrue(strpos($c[0], '<thead>') !== false && strpos($c[0], '</thead>') !== false);
+        // the band is inside the thead, the rows are after it
+        assertTrue(strpos($c[0], 'COM_FGSYSTEMREPORT_SECGROUP_ACCESS') < strpos($c[0], '</thead>'));
+        assertTrue(strpos($c[0], '</thead>') < strpos($c[0], 'ROW_A'));
+        assertSame(2, substr_count($c[0], '<tr nobr="true">'));
+        // a whole theme is not forced onto one page (that left half empty pages)
+        assertSame(false, strpos($c[0], '<table cellpadding="4" nobr'));
+    },
 ];

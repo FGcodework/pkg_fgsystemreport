@@ -28,6 +28,23 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.9]
+
+### Fixed - PDF report: half empty pages, everything in bold
+- 1.18.8 kept each Security Check theme together on one page, so a theme
+  that did not fit the rest of a page moved to the next one and left a large
+  empty area (page 1 was half empty, with the column heads alone on it).
+  Themes now flow over pages; the theme band is repeated at the top of the
+  next page, and a theme moves to a new page only when its band and first
+  rows would not fit.
+- The text of the report was bold throughout: the font style of the heading
+  above each table was inherited by the table. The Security Check, the
+  summary and the other tables are now written in regular weight (packages in
+  the extension list are bold again, as intended); this also fixes notes
+  running over the edge of their cell.
+- Extension list: the "#" column is wider, so numbers from 100 up no longer
+  break into two lines.
+
 ## [1.18.8]
 
 ### Changed - PDF report: Security Check in themes
