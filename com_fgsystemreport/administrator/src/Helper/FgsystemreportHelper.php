@@ -2492,26 +2492,9 @@ class FgsystemreportHelper
 			}
 		}
 
-		// Reorder: alphabetical, but package members directly under their package
-		$childrenByPackage = [];
-		$topLevel = [];
-		foreach ($extensions as $ext) {
-			if (!empty($ext->package_id) && isset($packageNames[$ext->package_id])) {
-				$childrenByPackage[$ext->package_id][] = $ext;
-			} else {
-				$topLevel[] = $ext;
-			}
-		}
-
-		$ordered = [];
-		foreach ($topLevel as $ext) {
-			$ordered[] = $ext;
-			if ($ext->type === 'package' && isset($childrenByPackage[$ext->extension_id])) {
-				foreach ($childrenByPackage[$ext->extension_id] as $child) {
-					$ordered[] = $child;
-				}
-			}
-		}
+		// Alphabetical by the name shown (the SQL order is by the raw name, a language constant
+		// such as COM_FOO, so it differs), package members directly under their package
+		$ordered = ExtensionOrderHelper::order($extensions, $packageNames);
 
 		// Precompute display flags
 		foreach ($ordered as $ext) {

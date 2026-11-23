@@ -28,6 +28,17 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.11]
+
+### Fixed - Installed Extensions list was not in alphabetical order
+- The list was sorted by the raw name in the database (a language constant
+  such as `COM_FOO` or an element name), but shown by the translated name, so
+  "FG Changelogs" came after "Button - Maths" and "Phoca Commander" before
+  "Custom HTML advanced". It is now sorted by the name shown: case and accents
+  do not matter and numbers go in numerical order ("Plugin 2" before
+  "Plugin 10"). The parts of a package stay directly under their package,
+  also A-Z. This applies to the list on the page and to the PDF report.
+
 ## [1.18.10]
 
 ### Changed - PDF report: compact extension list
