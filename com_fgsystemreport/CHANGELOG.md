@@ -28,6 +28,19 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.8]
+
+### Changed - PDF report: Security Check in themes
+- The Security Check table in the PDF report is now laid out in the same
+  themes as the Security page (updates, files, access, HTTPS and browser,
+  PHP and server, Joomla configuration, database / mail / operations, other),
+  each opened by a pale grey band with the number of checks and of warnings
+  and critical findings. A theme is kept together on one page when it fits.
+  Before, the table was one flat list in the order the checks happen to run.
+- An accepted risk is marked "Accepted" (or "Acceptance expired") in the
+  status cell, as on the Security page.
+- The status column is a little wider, so "Warning" no longer breaks in two.
+
 ## [1.18.7]
 
 ### Changed

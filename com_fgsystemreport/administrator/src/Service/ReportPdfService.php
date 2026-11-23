@@ -11,6 +11,7 @@ use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\SecurityPdfHtml;
 use Fg\Component\Fgsystemreport\Administrator\Pdf\FgSystemPDF;
 /**
  * Builds and outputs the PDF system report.
@@ -182,41 +183,7 @@ class ReportPdfService
             $pdf->Cell(0, 10, Text::_('COM_FGSYSTEMREPORT_SEC_HEADING'), 0, 1, 'L');
             $pdf->Ln(1);
 
-            $statusColors = [
-                'ok'      => ['#eafaf1', '#1e7e34'],
-                'warning' => ['#fdf3e3', '#b8720a'],
-                'danger'  => ['#fdecea', '#c0392b'],
-                'info'    => ['#f1f1f1', '#666666'],
-            ];
-            $statusLabels = [
-                'ok'      => 'COM_FGSYSTEMREPORT_SEC_STATUS_OK',
-                'warning' => 'COM_FGSYSTEMREPORT_SEC_STATUS_WARNING',
-                'danger'  => 'COM_FGSYSTEMREPORT_SEC_STATUS_DANGER',
-                'info'    => 'COM_FGSYSTEMREPORT_SEC_STATUS_INFO',
-            ];
-
-            $secHtml = '
-                <table cellpadding="4" style="border-collapse: collapse; width:100%;">
-                    <tr style="background-color:#f0f0f0; font-weight:bold;">
-                        <th align="left" style="width:26%; border:1px solid #ddd; font-size:10px;">' . Text::_('COM_FGSYSTEMREPORT_SEC_COL_CHECK') . '</th>
-                        <th align="center" style="width:12%; border:1px solid #ddd; font-size:10px;">' . Text::_('COM_FGSYSTEMREPORT_SEC_COL_STATUS') . '</th>
-                        <th align="left" style="width:24%; border:1px solid #ddd; font-size:10px;">' . Text::_('COM_FGSYSTEMREPORT_SEC_COL_VALUE') . '</th>
-                        <th align="left" style="width:38%; border:1px solid #ddd; font-size:10px;">' . Text::_('COM_FGSYSTEMREPORT_SEC_COL_NOTE') . '</th>
-                    </tr>';
-
-            foreach ($securityChecks as $check) {
-                [$bg, $fg] = $statusColors[$check->status] ?? $statusColors['info'];
-                $statusLabel = Text::_($statusLabels[$check->status] ?? 'COM_FGSYSTEMREPORT_SEC_STATUS_INFO');
-
-                $secHtml .= '<tr>
-                        <td align="left" style="border:1px solid #ddd; font-size:9px; background-color:' . $bg . ';">' . htmlspecialchars($check->label) . '</td>
-                        <td align="center" style="border:1px solid #ddd; font-size:9px; background-color:' . $bg . '; color:' . $fg . '; font-weight:bold;">' . htmlspecialchars($statusLabel) . '</td>
-                        <td align="left" style="border:1px solid #ddd; font-size:9px; background-color:' . $bg . ';">' . htmlspecialchars($check->value) . '</td>
-                        <td align="left" style="border:1px solid #ddd; font-size:8px; background-color:' . $bg . ';">' . htmlspecialchars($check->note) . '</td>
-                    </tr>';
-            }
-
-            $secHtml .= '</table>';
+            $secHtml = SecurityPdfHtml::render($securityChecks);
 
             $pdf->writeHTML($secHtml, true, false, true, false, '');
             $pdf->Ln(4);
