@@ -134,6 +134,22 @@ return [
         assertSame(['Admin Tools'], $r['disabled']);
         assertSame(['active' => [], 'disabled' => []], H::firewallsFromPlugins([]));
     },
+    'Securitycheck is recognised as a firewall plugin' => function () {
+        $r = H::firewallsFromPlugins([
+            ['element' => 'securitycheck', 'enabled' => 1],
+            ['element' => 'securitycheckpro', 'enabled' => 0],
+        ]);
+        assertSame(['Securitycheck'], $r['active']);
+        assertSame(['Securitycheck Pro'], $r['disabled']);
+    },
+    'leftover scripts in the web root: kickstart is caught, normal files are not' => function () {
+        foreach (['kickstart.php', 'Kickstart.php', 'kickstart-8.0.php', 'phpinfo.php', 'adminer.php', 'test.php'] as $n) {
+            assertTrue(H::isLeftoverTool($n), $n);
+        }
+        foreach (['index.php', 'configuration.php', 'kickstart.txt', 'testimonials.html', 'contact.php'] as $n) {
+            assertTrue(!H::isLeftoverTool($n), $n);
+        }
+    },
     'error page leak: the page seen on mechanizmysevcik.sk is recognised' => function () {
         $page = "<h2>Error: Stránka nebola nájdená</h2>Exception Code: 404<br />\nException File: /data/2/0/x/web/libraries/src/Router/Router.php<br />\nException Trace: <br />#0 /data/2/0/x/web/libraries/src/Application/SiteApplication.php(767): Joomla\\CMS\\Router\\Router->parse()<br />";
         assertTrue(H::errorPageLeak($page));

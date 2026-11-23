@@ -528,7 +528,7 @@ final class ExtraChecksHelper
 					$out['config'][] = $name;
 				} elseif (preg_match('/\.(sql|zip|tar|gz|tgz|bz2|7z|rar|jpa|jps|bak|old|orig)$/i', $name)) {
 					$out['backups'][] = $name;
-				} elseif (preg_match('/^(adminer|phpinfo|info|test|shell|wso|c99|r57|pma)[\w.\-]*\.php$/i', $name)) {
+				} elseif (HardeningHelper::isLeftoverTool($name)) {
 					$out['tools'][] = $name;
 				}
 			}

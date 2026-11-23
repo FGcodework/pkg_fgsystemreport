@@ -140,7 +140,19 @@ final class HardeningHelper
         'admintools'       => 'Admin Tools',
         'rsfirewall'       => 'RSFirewall!',
         'securitycheckpro' => 'Securitycheck Pro',
+        'securitycheck'    => 'Securitycheck',
     ];
+
+    /**
+     * Whether a file name in the web root looks like a leftover admin, test or
+     * restore script (phpinfo, adminer, web shells, the Akeeba Kickstart restorer).
+     *
+     * @since  1.18.12
+     */
+    public static function isLeftoverTool(string $name): bool
+    {
+        return (bool) preg_match('/^(adminer|phpinfo|info|test|shell|wso|c99|r57|pma|kickstart)[\w.\-]*\.php$/i', $name);
+    }
 
     /** Status codes a firewall answers with when it refuses a request. */
     private const REFUSAL_CODES = [403, 406, 429, 503];

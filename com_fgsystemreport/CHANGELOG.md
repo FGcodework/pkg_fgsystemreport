@@ -28,6 +28,18 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.12]
+
+### Added - Securitycheck recognised; leftover Kickstart script
+- The "Web application firewall" row now also knows the free **Securitycheck**
+  system plugin (it already knew Securitycheck Pro, Admin Tools, RSFirewall!
+  and SiteOps Suite), so a site protected by it is no longer reported as
+  having no firewall.
+- The "Leftover files in the web root" check now reports `kickstart.php`
+  (the Akeeba restore script that is easily forgotten after restoring a site
+  from a backup; anyone can run it). It is listed with the other admin/test
+  scripts, as a warning.
+
 ## [1.18.11]
 
 ### Fixed - Installed Extensions list was not in alphabetical order
