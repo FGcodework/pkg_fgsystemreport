@@ -28,6 +28,19 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.10]
+
+### Changed - PDF report: compact extension list
+- The "Installed Extensions" table is much shorter. The "in <package>" line
+  under the type of each part of a package is gone (the "»" in front of the
+  name and the amber package row above already say it), so a row is one line
+  where the name fits; the name column is wider, the version columns
+  narrower and the text a little smaller. With 197 extensions the list went
+  from 11 pages to 5 in a test.
+- The header row is repeated at the top of every page, not only every
+  100 rows.
+- The rows are built by a small helper class with tests.
+
 ## [1.18.9]
 
 ### Fixed - PDF report: half empty pages, everything in bold

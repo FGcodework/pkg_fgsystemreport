@@ -11,6 +11,7 @@ use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\CMS\Language\Text;
 use Fg\Component\Fgsystemreport\Administrator\Helper\FgsystemreportHelper;
+use Fg\Component\Fgsystemreport\Administrator\Helper\ExtensionsPdfHtml;
 use Fg\Component\Fgsystemreport\Administrator\Helper\SecurityPdfHtml;
 use Fg\Component\Fgsystemreport\Administrator\Pdf\FgSystemPDF;
 /**
@@ -415,18 +416,7 @@ class ReportPdfService
         $pdf->Ln(3);
 
         $extensions = FgsystemreportHelper::getInstalledExtensions($includeCore == 1);
-        // Example placeholder table
-        $html2 = '
-            <table cellspacing="0" cellpadding="3" style="border-collapse: collapse; width:100%;">
-                <tr>
-                    <th align="center" style="width:7%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">#</th>
-                    <th align="center" style="width:26%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_NAME').'</th>
-                    <th align="center" style="width:15%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_TYPE').'</th>
-                    <th align="center" style="width:12%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_STATE').'</th>
-                    <th align="center" style="width:20%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_CURRENT_VERSION').'</th>
-                    <th align="center" style="width:20%; border:1px solid #ddd; font-size:11px; vertical-align: middle;">'.Text::_('COM_FGSYSTEMREPORT_EXT_COL_NEW_VERSION').'</th>
-                </tr>
-                ';
+        $html2 = ExtensionsPdfHtml::head();
 
         // The table is written in chunks: TCPDF's writeHTML() memory use grows
         // steeply with the size of one HTML string (measured: ~98 MB for 1500
@@ -436,54 +426,7 @@ class ReportPdfService
         $extHead = $html2;
         $counter = 1;
         foreach ($extensions as $ext) {
-            $isPackage = $ext->is_package;
-            $isChild = $ext->is_child;
-            $hasUpdate = $ext->has_update;
-            // Row background: package = amber, update available = light red tint
-            if ($isPackage) {
-                $rowBg = ' background-color:#fff3cd;';
-            } elseif ($hasUpdate) {
-                $rowBg = ' background-color:#fdecea;';
-            } else {
-                $rowBg = '';
-            }
-            $typeKey = 'COM_FGSYSTEMREPORT_TYPE_' . strtoupper($ext->type);
-            $typeLabel = Text::_($typeKey);
-            if ($typeLabel === $typeKey) {
-                $typeLabel = ucfirst($ext->type);
-            }
-            if ($isPackage) {
-                $typeLabel = '<b>'.$typeLabel.'</b>';
-            } elseif ($isChild) {
-                $typeLabel .= '<br /><span style="font-size:8px; color:#888888;">'.Text::sprintf('COM_FGSYSTEMREPORT_EXT_IN_PACKAGE', htmlspecialchars($ext->parent_package)).'</span>';
-            }
-            if ($isPackage) {
-                $nameCell = '<b>'.htmlspecialchars($ext->display_name).'</b>';
-            } elseif ($isChild) {
-                $nameCell = '<span style="color:#555555;">&nbsp;&nbsp;&raquo; '.htmlspecialchars($ext->display_name).'</span>';
-            } else {
-                $nameCell = htmlspecialchars($ext->display_name);
-            }
-            // State column (enabled/disabled)
-            if ((int) $ext->enabled === 1) {
-                $stateCell = '<span style="color:#1e7e34;">'.Text::_('COM_FGSYSTEMREPORT_EXT_ENABLED').'</span>';
-            } else {
-                $stateCell = '<b><span style="color:#c0392b;">'.Text::_('COM_FGSYSTEMREPORT_EXT_DISABLED').'</span></b>';
-            }
-            // New Version cell: highlight available update
-            if ($hasUpdate) {
-                $versionCell = '<b><span style="color:#c0392b;">'.htmlspecialchars($ext->available_version).'</span></b>';
-            } else {
-                $versionCell = htmlspecialchars($ext->available_version);
-            }
-            $html2 .= '<tr>
-                <td align="center" style="width:7%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$counter.'</td>
-                <td align="left" style="width:26%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$nameCell.'</td>
-                <td align="center" style="width:15%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$typeLabel.'</td>
-                <td align="center" style="width:12%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$stateCell.'</td>
-                <td align="center" style="width:20%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.htmlspecialchars($ext->installed_version).'</td>
-                <td align="center" style="width:20%; font-size:10px; border:1px solid #ddd; vertical-align: middle;'.$rowBg.'">'.$versionCell.'</td>
-            </tr>';
+            $html2 .= ExtensionsPdfHtml::row($ext, $counter);
             $counter++;
 
             if (($counter - 1) % 100 === 0) {
@@ -496,7 +439,7 @@ class ReportPdfService
         // Remainder (or the header-only table when there are no extensions)
         if ($html2 !== $extHead || $counter === 1) {
             $pdf->SetFont('dejavusanssub', '', 10);
-                $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
+            $pdf->writeHTML($html2 . '</table>', true, false, true, false, '');
         }
 
         $pdf->Ln(5);
