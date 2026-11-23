@@ -30,142 +30,98 @@ too whenever it's bumped again, so this note doesn't go stale.)
 
 ## [1.18.13]
 
-### Added - Site-wide permission scan and extra protection of /administrator
-- **File and folder permissions (site-wide scan)**: a new Security Check row
-  that walks the site (bounded to 4 seconds / 60,000 entries, no symlinks, the
-  `tmp`, `cache` and `logs` folders skipped) and reports files and folders any
-  user on the server can change (777/666), and setuid/setgid files. A
-  world-writable PHP file or a setuid file is red, other world-writable files
-  and folders are amber. It deliberately does not flag 664/775: on shared
-  hosting that is normal and would drown the real findings. If the scan has to
-  stop early it says so. Not done on Windows servers.
-- **Extra protection of /administrator**: a new row that reads the
-  `.htaccess` of the administrator folder and the `<Location>`/`<Directory>`
-  blocks for `administrator` in the root `.htaccess`, and shows whether an HTTP
-  password or an IP restriction is set. When none is found it is only an info
-  (a recommendation): protection in the server configuration, a CDN or a
-  firewall cannot be seen from PHP.
+Also covers the intermediate builds 1.18.5 - 1.18.12, which were never kept as
+separate releases.
 
-## [1.18.12]
-
-### Added - Securitycheck recognised; leftover Kickstart script
-- The "Web application firewall" row now also knows the free **Securitycheck**
-  system plugin (it already knew Securitycheck Pro, Admin Tools, RSFirewall!
-  and SiteOps Suite), so a site protected by it is no longer reported as
-  having no firewall.
-- The "Leftover files in the web root" check now reports `kickstart.php`
-  (the Akeeba restore script that is easily forgotten after restoring a site
-  from a backup; anyone can run it). It is listed with the other admin/test
-  scripts, as a warning.
-
-## [1.18.11]
-
-### Fixed - Installed Extensions list was not in alphabetical order
-- The list was sorted by the raw name in the database (a language constant
-  such as `COM_FOO` or an element name), but shown by the translated name, so
-  "FG Changelogs" came after "Button - Maths" and "Phoca Commander" before
-  "Custom HTML advanced". It is now sorted by the name shown: case and accents
-  do not matter and numbers go in numerical order ("Plugin 2" before
-  "Plugin 10"). The parts of a package stay directly under their package,
-  also A-Z. This applies to the list on the page and to the PDF report.
-
-## [1.18.10]
-
-### Changed - PDF report: compact extension list
-- The "Installed Extensions" table is much shorter. The "in <package>" line
-  under the type of each part of a package is gone (the "»" in front of the
-  name and the amber package row above already say it), so a row is one line
-  where the name fits; the name column is wider, the version columns
-  narrower and the text a little smaller. With 197 extensions the list went
-  from 11 pages to 5 in a test.
-- The header row is repeated at the top of every page, not only every
-  100 rows.
-- The rows are built by a small helper class with tests.
-
-## [1.18.9]
-
-### Fixed - PDF report: half empty pages, everything in bold
-- 1.18.8 kept each Security Check theme together on one page, so a theme
-  that did not fit the rest of a page moved to the next one and left a large
-  empty area (page 1 was half empty, with the column heads alone on it).
-  Themes now flow over pages; the theme band is repeated at the top of the
-  next page, and a theme moves to a new page only when its band and first
-  rows would not fit.
-- The text of the report was bold throughout: the font style of the heading
-  above each table was inherited by the table. The Security Check, the
-  summary and the other tables are now written in regular weight (packages in
-  the extension list are bold again, as intended); this also fixes notes
-  running over the edge of their cell.
-- Extension list: the "#" column is wider, so numbers from 100 up no longer
-  break into two lines.
-
-## [1.18.8]
-
-### Changed - PDF report: Security Check in themes
-- The Security Check table in the PDF report is now laid out in the same
-  themes as the Security page (updates, files, access, HTTPS and browser,
-  PHP and server, Joomla configuration, database / mail / operations, other),
-  each opened by a pale grey band with the number of checks and of warnings
-  and critical findings. A theme is kept together on one page when it fits.
-  Before, the table was one flat list in the order the checks happen to run.
-- An accepted risk is marked "Accepted" (or "Acceptance expired") in the
-  status cell, as on the Security page.
-- The status column is a little wider, so "Warning" no longer breaks in two.
-
-## [1.18.7]
-
-### Changed
-- "Web application firewall" row: the text now says a firewall extension is
-  *enabled* and that only its presence is checked, not whether its rules are
-  switched on (the free edition of some firewall extensions has none).
-- When SiteOps Suite refuses the exposed-files probes, the note also says
-  where to trust the server's address (Security > IP addresses > Add an
-  address > Trusted).
-
-## [1.18.6]
-
-### Added - "Error pages show server details" row
-- The Security Check now looks at the page a nonexistent address gives (and
-  at the answers of the exposed-files probes) for a stack trace, the file of
-  an exception, a PHP warning with a path or the path of the Joomla
-  installation. Such a page tells an attacker where the site lives and which
-  code runs; it is a warning. Found on a live site: a developer plugin
+### Added - new Security Check rows
+- **Web application firewall**: shows whether a firewall extension is enabled
+  (SiteOps Suite, Admin Tools, RSFirewall!, Securitycheck, Securitycheck Pro)
+  or a firewall / CDN is in front of the site (Cloudflare, Sucuri,
+  Imunify360, read from the response headers of the home page). A plugin that
+  is installed but disabled is a warning; no firewall is only information,
+  because a hosting provider may run one at server level. The text says only
+  the presence of the firewall is checked, not whether its rules are switched
+  on (the free edition of some firewall extensions has none). The row is in
+  the "Accounts and access" theme.
+- **Error pages show server details**: looks at the page a nonexistent
+  address gives (and at the answers of the exposed-files probes) for a stack
+  trace, the file of an exception, a PHP warning with a path or the path of the
+  Joomla installation. Such a page tells an attacker where the site lives and
+  which code runs; it is a warning. Found on a live site: a developer plugin
   (system-diagnostic) printed every exception to every visitor, whatever the
   debug setting.
+- **File and folder permissions (site-wide scan)**: walks the site (bounded to
+  4 seconds / 60,000 entries, no symlinks, the `tmp`, `cache` and `logs`
+  folders skipped) and reports files and folders any user on the server can
+  change (777/666), and setuid/setgid files. A world-writable PHP file or a
+  setuid file is red, other world-writable files and folders are amber. It
+  deliberately does not flag 664/775: on shared hosting that is normal and
+  would drown the real findings. If the scan has to stop early it says so. Not
+  done on Windows servers.
+- **Extra protection of /administrator**: reads the `.htaccess` of the
+  administrator folder and the `<Location>`/`<Directory>` blocks for
+  `administrator` in the root `.htaccess`, and shows whether an HTTP password
+  or an IP restriction is set. When none is found it is only an info (a
+  recommendation): protection in the server configuration, a CDN or a firewall
+  cannot be seen from PHP.
+- The "Leftover files in the web root" check now also reports `kickstart.php`
+  (the Akeeba restore script that is easily forgotten after restoring a site
+  from a backup; anyone can run it), listed with the other admin/test scripts
+  as a warning.
 
-### Changed - exposed-files check works on "soft 404" sites
-- When a nonexistent address answers HTTP 200 (as that plugin made the site
-  do), the check used to give up ("Inconclusive"). A file now counts as
-  exposed when the answer is a success, carries the mark of that file (e.g.
-  `[core]` for `.git/config`) and the page of the nonexistent address does
-  not carry it too. Without a finding the row is informational and notes the
-  soft 404, which search engines may take for real pages.
-
-## [1.18.5]
-
-### Changed - exposed-files probes and a firewall in front of the site
+### Changed - exposed-files check
 - The probes for publicly exposed files (.env, .git, phpinfo.php, ...) are
-  requests the component sends to its own site. A firewall such as
-  SiteOps Suite takes them for a scanner and blocks them (observed: 48
-  "attacks" in a day, all `GET /phpinfo.php` from the server's own address).
-  The check no longer reads such a refusal as "not exposed": when a firewall
-  refuses probes, the row is informational, names the firewall and the paths
-  that could not be judged, and says to add the server's own address to the
-  firewall's allow list. A plain 403 from the web server is still treated as
-  protected. Recognised: SiteOps Suite, Cloudflare (cf-mitigated), Sucuri,
-  Imunify360.
+  requests the component sends to its own site. A firewall such as SiteOps
+  Suite takes them for a scanner and blocks them (observed: 48 "attacks" in a
+  day, all `GET /phpinfo.php` from the server's own address). The check no
+  longer reads such a refusal as "not exposed": when a firewall refuses
+  probes, the row is informational, names the firewall and the paths that
+  could not be judged, and says to add the server's own address to the
+  firewall's allow list (in SiteOps Suite: Security > IP addresses > Add an
+  address > Trusted). A plain 403 from the web server is still treated as
+  protected.
+- Works on "soft 404" sites: when a nonexistent address answers HTTP 200 (as
+  that diagnostic plugin made the site do), the check used to give up
+  ("Inconclusive"). A file now counts as exposed when the answer is a success,
+  carries the mark of that file (e.g. `[core]` for `.git/config`) and the page
+  of the nonexistent address does not carry it too. Without a finding the row
+  is informational and notes the soft 404, which search engines may take for
+  real pages.
 - The requests to the own site now send an identifiable User-Agent,
   `FG-System-Report/<version> (self-check)`, instead of the old
   `JC-System-Report-Security-Check`, so they are easy to tell apart in a
   firewall log or an access log.
 
-### Added - "Web application firewall" row in the Security Check
-- Shows whether a firewall extension is enabled (SiteOps Suite, Admin Tools,
-  RSFirewall!, Securitycheck Pro) or a firewall / CDN is in front of the site
-  (Cloudflare, Sucuri, Imunify360, read from the response headers of the home
-  page). A plugin that is installed but disabled is a warning; no firewall is
-  only information, because a hosting provider may run one at server level.
-  The row is in the "Accounts and access" theme.
+### Changed - PDF report
+- The Security Check table is laid out in the same themes as the Security page
+  (updates, files, access, HTTPS and browser, PHP and server, Joomla
+  configuration, database / mail / operations, other), each opened by a pale
+  grey band with the number of checks and of warnings and critical findings.
+  Themes flow over pages without leaving half empty pages; the band is
+  repeated at the top of the next page, and a theme moves to a new page only
+  when its band and first rows would not fit.
+- An accepted risk is marked "Accepted" (or "Acceptance expired") in the
+  status cell, as on the Security page; the status column is a little wider,
+  so "Warning" no longer breaks in two.
+- The text of the report was bold throughout (the font style of the heading
+  above each table was inherited by the table); everything is now regular
+  weight, packages in the extension list are bold, and notes no longer run over
+  the edge of their cell.
+- The "Installed Extensions" table is much shorter: the "in <package>" line is
+  gone (the "»" in front of the name and the amber package row say it), the
+  name column is wider, the version columns narrower and the text a little
+  smaller; the "#" column is wider so numbers from 100 up do not break. With
+  197 extensions the list went from 11 pages to 5 in a test. The header row
+  is repeated at the top of every page.
+
+### Fixed - Installed Extensions list was not in alphabetical order
+- The list was sorted by the raw name in the database (a language constant
+  such as `COM_FOO` or an element name), but shown by the translated name, so
+  "FG Changelogs" came after "Button - Maths". It is now sorted by the name
+  shown: case and accents do not matter and numbers go in numerical order
+  ("Plugin 2" before "Plugin 10"). The parts of a package stay directly under
+  their package, also A-Z. This applies to the list on the page and to the PDF
+  report.
 
 ## [1.18.4]
 
