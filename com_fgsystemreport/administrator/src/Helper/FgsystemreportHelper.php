@@ -1365,6 +1365,46 @@ class FgsystemreportHelper
 			$add('COM_FGSYSTEMREPORT_SEC_FOLDER_PERMS', 'ok', $permValue, '');
 		}
 
+		// 24b) Files and folders other server users can change, and setuid files
+		$scan = PermissionScanHelper::scan(JPATH_ROOT);
+
+		if ($scan !== null) {
+			$c     = $scan['counts'];
+			$ex    = $scan['examples'];
+			$notes = [];
+
+			foreach (['world_php' => 'PHP', 'world_file' => 'FILES', 'world_dir' => 'DIRS', 'special' => 'SPECIAL'] as $kind => $suffix) {
+				if ($c[$kind] > 0) {
+					$notes[] = Text::sprintf('COM_FGSYSTEMREPORT_SEC_PERMS_SCAN_' . $suffix, $c[$kind], implode(', ', $ex[$kind]));
+				}
+			}
+
+			$total = array_sum($c);
+			$tail  = $scan['complete'] ? '' : ' ' . Text::sprintf('COM_FGSYSTEMREPORT_SEC_PERMS_SCAN_PARTIAL', $scan['scanned']);
+
+			if ($c['world_php'] > 0 || $c['special'] > 0) {
+				$add('COM_FGSYSTEMREPORT_SEC_PERMS_SCAN', 'danger', (string) $total, implode(' ', $notes) . $tail);
+			} elseif ($total > 0) {
+				$add('COM_FGSYSTEMREPORT_SEC_PERMS_SCAN', 'warning', (string) $total, implode(' ', $notes) . $tail);
+			} else {
+				$add('COM_FGSYSTEMREPORT_SEC_PERMS_SCAN', 'ok', Text::_('JNONE'), trim($tail));
+			}
+		}
+
+		// 24c) Extra layer in front of /administrator, as far as .htaccess shows it
+		$readHt = static function (string $file): string {
+			return is_file($file) && is_readable($file) ? (string) @file_get_contents($file, false, null, 0, 262144) : '';
+		};
+		$layers = HardeningHelper::backendProtection($readHt(JPATH_ADMINISTRATOR . '/.htaccess'), $readHt(JPATH_ROOT . '/.htaccess'));
+
+		if ($layers) {
+			$names = array_map(static fn ($l) => Text::_('COM_FGSYSTEMREPORT_SEC_BACKEND_PROTECTION_' . strtoupper($l)), $layers);
+			$add('COM_FGSYSTEMREPORT_SEC_BACKEND_PROTECTION', 'ok', implode(' + ', $names), '');
+		} else {
+			$add('COM_FGSYSTEMREPORT_SEC_BACKEND_PROTECTION', 'info', Text::_('JNO'),
+				Text::_('COM_FGSYSTEMREPORT_SEC_BACKEND_PROTECTION_NONE'));
+		}
+
 		// 25) Orphaned rows in the assets table (parent no longer exists).
 		$orphans = SiteHealthHelper::orphanAssets();
 

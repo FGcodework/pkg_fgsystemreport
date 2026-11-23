@@ -144,6 +144,44 @@ final class HardeningHelper
     ];
 
     /**
+     * Which extra layers an .htaccess puts in front of /administrator.
+     *
+     * Looks in the .htaccess of the administrator folder and in the
+     * <Location>/<Directory> blocks of the root .htaccess that name
+     * "administrator". Comments are ignored.
+     *
+     * @param   string  $adminHtaccess  content of administrator/.htaccess ('' when none)
+     * @param   string  $rootHtaccess   content of the root .htaccess ('' when none)
+     *
+     * @return  string[]  subset of ['password', 'ip']
+     *
+     * @since   1.18.13
+     */
+    public static function backendProtection(string $adminHtaccess, string $rootHtaccess): array
+    {
+        $strip = static fn (string $t): string => preg_replace('/^\s*#.*$/m', '', $t) ?? '';
+        $texts = [$strip($adminHtaccess)];
+
+        if (preg_match_all('~<(Location|LocationMatch|Directory|DirectoryMatch)\s+[^>]*administrator[^>]*>(.*?)</\1>~is', $strip($rootHtaccess), $m)) {
+            $texts = array_merge($texts, $m[2]);
+        }
+
+        $found = [];
+
+        foreach ($texts as $t) {
+            if (preg_match('/^\s*(AuthUserFile|AuthType\s+(Basic|Digest)|Require\s+valid-user)\b/mi', $t)) {
+                $found['password'] = true;
+            }
+
+            if (preg_match('/^\s*(Require\s+(ip|host|all\s+denied)\b|Deny\s+from\s+all\b|Allow\s+from\s+\S)/mi', $t)) {
+                $found['ip'] = true;
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    /**
      * Whether a file name in the web root looks like a leftover admin, test or
      * restore script (phpinfo, adminer, web shells, the Akeeba Kickstart restorer).
      *

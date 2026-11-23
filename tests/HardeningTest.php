@@ -142,6 +142,20 @@ return [
         assertSame(['Securitycheck'], $r['active']);
         assertSame(['Securitycheck Pro'], $r['disabled']);
     },
+    'backend protection: password and IP restriction are read from .htaccess' => function () {
+        assertSame(['password'], H::backendProtection("AuthType Basic\nAuthName \"x\"\nAuthUserFile /home/u/.htpasswd\nRequire valid-user\n", ''));
+        assertSame(['ip'], H::backendProtection("Require ip 203.0.113.7\n", ''));
+        $both = H::backendProtection("AuthUserFile /x\nOrder deny,allow\nDeny from all\nAllow from 1.2.3.4\n", '');
+        assertSame(['password', 'ip'], $both);
+        assertSame([], H::backendProtection('', ''));
+    },
+    'backend protection: comments do not count, the root file counts only for administrator blocks' => function () {
+        assertSame([], H::backendProtection("# AuthUserFile /x\n  # Require ip 1.2.3.4\n", ''));
+        $root = "<Location /administrator>\nAuthType Basic\nAuthUserFile /x\n</Location>\n";
+        assertSame(['password'], H::backendProtection('', $root));
+        $other = "<Directory /var/www/shop>\nAuthType Basic\nAuthUserFile /x\n</Directory>\nRequire all granted\n";
+        assertSame([], H::backendProtection('', $other));
+    },
     'leftover scripts in the web root: kickstart is caught, normal files are not' => function () {
         foreach (['kickstart.php', 'Kickstart.php', 'kickstart-8.0.php', 'phpinfo.php', 'adminer.php', 'test.php'] as $n) {
             assertTrue(H::isLeftoverTool($n), $n);

@@ -28,6 +28,24 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.13]
+
+### Added - Site-wide permission scan and extra protection of /administrator
+- **File and folder permissions (site-wide scan)**: a new Security Check row
+  that walks the site (bounded to 4 seconds / 60,000 entries, no symlinks, the
+  `tmp`, `cache` and `logs` folders skipped) and reports files and folders any
+  user on the server can change (777/666), and setuid/setgid files. A
+  world-writable PHP file or a setuid file is red, other world-writable files
+  and folders are amber. It deliberately does not flag 664/775: on shared
+  hosting that is normal and would drown the real findings. If the scan has to
+  stop early it says so. Not done on Windows servers.
+- **Extra protection of /administrator**: a new row that reads the
+  `.htaccess` of the administrator folder and the `<Location>`/`<Directory>`
+  blocks for `administrator` in the root `.htaccess`, and shows whether an HTTP
+  password or an IP restriction is set. When none is found it is only an info
+  (a recommendation): protection in the server configuration, a CDN or a
+  firewall cannot be seen from PHP.
+
 ## [1.18.12]
 
 ### Added - Securitycheck recognised; leftover Kickstart script

@@ -35,7 +35,7 @@ final class SecurityGroupHelper
         // files and integrity
         'CORE_FILES' => 'files', 'CRITICAL_FILES' => 'files', 'EXPOSED_FILES' => 'files', 'LEFTOVERS' => 'files',
         'PHP_IN_IMAGES' => 'files', 'PERSISTENCE' => 'files', 'CONFIG_PERMS' => 'files', 'DIR_PERMISSIONS' => 'files',
-        'FOLDER_PERMS' => 'files', 'HTACCESS' => 'files', 'UPLOADS' => 'files',
+        'FOLDER_PERMS' => 'files', 'PERMS_SCAN' => 'files', 'BACKEND_PROTECTION' => 'access', 'HTACCESS' => 'files', 'UPLOADS' => 'files',
         // accounts and access
         'SUPERUSERS' => 'access', 'SUPERUSERS_NEW' => 'access', 'MFA' => 'access', 'FAILED_LOGINS' => 'access',
         'ADMIN_NAMES' => 'access', 'REGISTRATION' => 'access', 'PASSWORD_LENGTH' => 'access', 'ACTIONLOGS' => 'access',
