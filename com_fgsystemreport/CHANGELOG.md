@@ -28,6 +28,23 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.14]
+
+### Added - early warning before the hosting quota is full
+- **Hosting quota** (Security Check, "PHP and server"): PHP cannot read the
+  quota of a hosting account (`disk_free_space()` reports the whole disk, which
+  on shared hosting is huge), so it is entered in the component options -
+  "Hosting quota (MB)" and, if needed, "Other use of the quota (MB)" for what
+  the quota counts but the Disk usage scan does not see (database, mailboxes).
+  The row shows used / quota in percent, amber from 80 % and red from 90 %.
+  The size of the site is taken from the last Disk usage scan (the row says
+  when it ran); it never starts a scan by itself. Without a quota the row is
+  only an info that says where to enter it.
+- **Write test (tmp and logs)**: really writes 4 KB into the Joomla `tmp` and
+  `logs` folders and removes the file. A full quota or disk, or wrong folder
+  permissions, is shown as a red finding at once instead of as a failed update
+  or a site that stops working.
+
 ## [1.18.13]
 
 Also covers the intermediate builds 1.18.5 - 1.18.12, which were never kept as

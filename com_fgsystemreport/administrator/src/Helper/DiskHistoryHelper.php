@@ -156,6 +156,31 @@ class DiskHistoryHelper
 	}
 
 	/**
+	 * Latest snapshot of any exclude list (->scanned_at UTC, ->total), or null.
+	 *
+	 * @since  1.18.14
+	 */
+	public static function latestAny(): ?object
+	{
+		if (!self::ensureTable()) {
+			return null;
+		}
+
+		try {
+			$db = Factory::getContainer()->get('DatabaseDriver');
+
+			return $db->setQuery(
+				$db->getQuery(true)->select(['scanned_at', 'total'])->from($db->quoteName(self::TABLE))
+					->order($db->quoteName('id') . ' DESC'),
+				0,
+				1
+			)->loadObject() ?: null;
+		} catch (\Throwable $e) {
+			return null;
+		}
+	}
+
+	/**
 	 * Compare the current scan with a previous snapshot.
 	 *
 	 * @param   array        $dirs   Current scan: absolute path => bytes

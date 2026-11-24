@@ -45,7 +45,7 @@ final class SecurityGroupHelper
         'HEADERS' => 'transport', 'FINGERPRINT' => 'transport', 'PERMISSIONS_POLICY' => 'transport',
         // PHP and server
         'PHP_SETTINGS' => 'server', 'PHP_LIMITS' => 'server', 'EXEC_FUNCTIONS' => 'server', 'OPCACHE' => 'server',
-        'DISK_FREE' => 'server', 'CLOCK_SKEW' => 'server', 'FLOCK' => 'server', 'EXTERNAL_IP' => 'server',
+        'DISK_FREE' => 'server', 'HOSTING_QUOTA' => 'server', 'WRITE_TEST' => 'server', 'CLOCK_SKEW' => 'server', 'FLOCK' => 'server', 'EXTERNAL_IP' => 'server',
         // Joomla configuration
         'DEBUG' => 'config', 'ERROR_LEAK' => 'config', 'ERROR_REPORTING' => 'config', 'CONFIG' => 'config', 'SYSTEM_CACHE' => 'config',
         // database, mail and operation

@@ -121,6 +121,57 @@ final class HardeningHelper
     }
 
     /**
+     * How much of the hosting quota is used.
+     *
+     * @param   int|float  $usedBytes  bytes used (site files + other use)
+     * @param   int        $quotaMb    quota in MB (0 = not set)
+     *
+     * @return  array{status:string,percent:int}|null  null when no quota is set
+     *
+     * @since   1.18.14
+     */
+    public static function quotaStatus($usedBytes, int $quotaMb): ?array
+    {
+        if ($quotaMb <= 0 || !\is_numeric($usedBytes) || $usedBytes < 0) {
+            return null;
+        }
+
+        $percent = (int) floor($usedBytes / ($quotaMb * 1048576) * 100);
+
+        return ['status' => $percent >= 90 ? 'danger' : ($percent >= 80 ? 'warning' : 'ok'), 'percent' => $percent];
+    }
+
+    /**
+     * Try to write 4 KB into a folder and remove the file again. Creating an empty
+     * file can succeed on a full quota, so real data is written.
+     *
+     * @return  string  '' when it works, otherwise the reason
+     *
+     * @since   1.18.14
+     */
+    public static function writeTest(string $dir): string
+    {
+        if ($dir === '' || !is_dir($dir)) {
+            return 'missing';
+        }
+
+        $file = rtrim($dir, '/\\') . '/fgsr-write-test-' . bin2hex(random_bytes(4)) . '.tmp';
+        $data = str_repeat('x', 4096);
+        $fh   = @fopen($file, 'wb');
+
+        if ($fh === false) {
+            return 'not writable';
+        }
+
+        $written = @fwrite($fh, $data);
+        $closed  = @fclose($fh);
+        $size    = @filesize($file);
+        @unlink($file);
+
+        return ($written === 4096 && $closed && (int) $size === 4096) ? '' : 'write failed';
+    }
+
+    /**
      * Is the DMARC policy "none"? Such a record only asks receivers for reports;
      * mail that fails the checks is still delivered, so nobody is stopped from
      * sending as this domain.

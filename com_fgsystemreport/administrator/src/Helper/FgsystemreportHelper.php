@@ -1028,6 +1028,55 @@ class FgsystemreportHelper
 				$disk['status'] === 'ok' ? '' : Text::_('COM_FGSYSTEMREPORT_SEC_DISK_FREE_NOTE'));
 		}
 
+		// 14d) Hosting quota (cannot be read from PHP, so it is entered in the options)
+		// and a real write test of the folders Joomla must write to.
+		$params   = \Joomla\CMS\Component\ComponentHelper::getParams('com_fgsystemreport');
+		$quotaMb  = max(0, (int) $params->get('hosting_quota_mb', 0));
+		$otherMb  = max(0, (int) $params->get('hosting_quota_other_mb', 0));
+		$lastScan = $quotaMb > 0 ? DiskHistoryHelper::latestAny() : null;
+
+		if ($quotaMb <= 0) {
+			$add('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA', 'info', Text::_('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_NOT_SET_VALUE'),
+				Text::_('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_NOT_SET'));
+		} elseif ($lastScan === null) {
+			$add('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA', 'info', Text::_('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_NO_SCAN_VALUE'),
+				Text::_('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_NO_SCAN'));
+		} else {
+			$usedBytes = (int) $lastScan->total + $otherMb * 1048576;
+			$q         = HardeningHelper::quotaStatus($usedBytes, $quotaMb);
+			$note      = Text::sprintf('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_BASIS',
+				\Joomla\CMS\HTML\HTMLHelper::_('date', $lastScan->scanned_at, 'Y-m-d H:i'),
+				\Joomla\CMS\HTML\HTMLHelper::_('number.bytes', (int) $lastScan->total),
+				\Joomla\CMS\HTML\HTMLHelper::_('number.bytes', $otherMb * 1048576));
+
+			if ($q['status'] !== 'ok') {
+				$note = Text::_('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_HIGH') . ' ' . $note;
+			}
+
+			$add('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA', $q['status'],
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_HOSTING_QUOTA_VALUE',
+					\Joomla\CMS\HTML\HTMLHelper::_('number.bytes', $usedBytes),
+					\Joomla\CMS\HTML\HTMLHelper::_('number.bytes', $quotaMb * 1048576), $q['percent']),
+				$note);
+		}
+
+		$writeFailed = [];
+
+		foreach (['tmp' => (string) $app->get('tmp_path', JPATH_ROOT . '/tmp'), 'logs' => (string) $app->get('log_path', JPATH_ADMINISTRATOR . '/logs')] as $label => $dir) {
+			$why = HardeningHelper::writeTest($dir);
+
+			if ($why !== '') {
+				$writeFailed[] = $label . ' (' . $why . ')';
+			}
+		}
+
+		if ($writeFailed) {
+			$add('COM_FGSYSTEMREPORT_SEC_WRITE_TEST', 'danger', (string) count($writeFailed),
+				Text::sprintf('COM_FGSYSTEMREPORT_SEC_WRITE_TEST_FAIL', implode(', ', $writeFailed)));
+		} else {
+			$add('COM_FGSYSTEMREPORT_SEC_WRITE_TEST', 'ok', Text::_('JYES'), '');
+		}
+
 		// 15) configuration.php: secret entropy/length, session handler,
 		// mailer type, offline status, SEF without .htaccess
 		$configIssues = [];

@@ -44,6 +44,10 @@
             label="COM_FGSYSTEMREPORT_CONFIG_DISKSCAN_ITEMS_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_DISKSCAN_ITEMS_DESC" />
         <field name="disk_scan_time_limit" type="text" filter="integer" default="25"
             label="COM_FGSYSTEMREPORT_CONFIG_DISKSCAN_TIME_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_DISKSCAN_TIME_DESC" />
+        <field name="hosting_quota_mb" type="text" filter="integer" default="0"
+            label="COM_FGSYSTEMREPORT_CONFIG_QUOTA_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_QUOTA_DESC" />
+        <field name="hosting_quota_other_mb" type="text" filter="integer" default="0"
+            label="COM_FGSYSTEMREPORT_CONFIG_QUOTA_OTHER_LABEL" description="COM_FGSYSTEMREPORT_CONFIG_QUOTA_OTHER_DESC" />
     </fieldset>
 
     <fieldset name="diskgrowth" label="COM_FGSYSTEMREPORT_CONFIG_GROWTH_FIELDSET" description="COM_FGSYSTEMREPORT_CONFIG_GROWTH_FIELDSET_DESC">

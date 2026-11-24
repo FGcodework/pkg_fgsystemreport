@@ -156,6 +156,25 @@ return [
         $other = "<Directory /var/www/shop>\nAuthType Basic\nAuthUserFile /x\n</Directory>\nRequire all granted\n";
         assertSame([], H::backendProtection('', $other));
     },
+    'quota: warns from 80 percent, critical from 90, nothing without a quota' => function () {
+        $mb = 1048576;
+        assertSame(null, H::quotaStatus(500 * $mb, 0));
+        assertSame(['status' => 'ok', 'percent' => 50], H::quotaStatus(500 * $mb, 1000));
+        assertSame(['status' => 'warning', 'percent' => 80], H::quotaStatus(800 * $mb, 1000));
+        assertSame(['status' => 'warning', 'percent' => 89], H::quotaStatus(899 * $mb, 1000));
+        assertSame(['status' => 'danger', 'percent' => 90], H::quotaStatus(900 * $mb, 1000));
+        assertSame(['status' => 'danger', 'percent' => 105], H::quotaStatus(1050 * $mb, 1000));
+        assertSame(null, H::quotaStatus(-1, 1000));
+    },
+    'write test: a folder that works leaves nothing behind, a bad one is named' => function () {
+        $d = sys_get_temp_dir() . '/fgsr_wt_' . bin2hex(random_bytes(4));
+        mkdir($d);
+        assertSame('', H::writeTest($d));
+        assertSame([], array_values(array_diff(scandir($d), ['.', '..'])));
+        rmdir($d);
+        assertSame('missing', H::writeTest($d . '/nope'));
+        assertSame('missing', H::writeTest(''));
+    },
     'leftover scripts in the web root: kickstart is caught, normal files are not' => function () {
         foreach (['kickstart.php', 'Kickstart.php', 'kickstart-8.0.php', 'phpinfo.php', 'adminer.php', 'test.php'] as $n) {
             assertTrue(H::isLeftoverTool($n), $n);
