@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.16]
+
+### Changed - "Free disk space" with a hosting quota
+- When a hosting quota is entered in the options, a healthy "Free disk space"
+  figure is shown as information, with a note that it is the whole server disk
+  (shared with other accounts) and not the room left for the account; the
+  "Hosting quota" row is the one to watch. A really low figure (under 10 % or
+  500 MB) is still a warning or critical finding, because writes then fail
+  whatever the quota says.
+
 ## [1.18.15]
 
 ### Fixed - no "Options" button

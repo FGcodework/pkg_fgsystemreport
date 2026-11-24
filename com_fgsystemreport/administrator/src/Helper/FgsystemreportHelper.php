@@ -1023,9 +1023,14 @@ class FgsystemreportHelper
 		$disk      = HardeningHelper::diskStatus($diskFree, $diskTotal);
 
 		if ($disk !== null) {
-			$add('COM_FGSYSTEMREPORT_SEC_DISK_FREE', $disk['status'],
+			// With a hosting quota entered, a healthy figure for the whole volume says
+			// nothing about the account (it is shared with other customers): show it as
+			// information only. A really low figure stays a warning.
+			$quotaSet = (int) \Joomla\CMS\Component\ComponentHelper::getParams('com_fgsystemreport')->get('hosting_quota_mb', 0) > 0;
+			$okShared = $disk['status'] === 'ok' && $quotaSet;
+			$add('COM_FGSYSTEMREPORT_SEC_DISK_FREE', $okShared ? 'info' : $disk['status'],
 				Text::sprintf('COM_FGSYSTEMREPORT_SEC_DISK_FREE_VALUE', \Joomla\CMS\HTML\HTMLHelper::_('number.bytes', (int) $diskFree), $disk['percent']),
-				$disk['status'] === 'ok' ? '' : Text::_('COM_FGSYSTEMREPORT_SEC_DISK_FREE_NOTE'));
+				$okShared ? Text::_('COM_FGSYSTEMREPORT_SEC_DISK_FREE_SHARED') : ($disk['status'] === 'ok' ? '' : Text::_('COM_FGSYSTEMREPORT_SEC_DISK_FREE_NOTE')));
 		}
 
 		// 14d) Hosting quota (cannot be read from PHP, so it is entered in the options)
