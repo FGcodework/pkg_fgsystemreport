@@ -201,6 +201,24 @@ class FgsystemreportController extends FormController
     }
 
     /**
+     * Run the one-off hosting quota diagnostic and show its raw output on the
+     * Disk usage page (POST, core.admin). Nothing is saved.
+     *
+     * @return  void
+     *
+     * @since   1.18.17
+     */
+    public function quotaProbe()
+    {
+        $this->requireAccess('core.admin');
+        Session::checkToken('post') or die(Text::_('JINVALID_TOKEN'));
+        $app  = Factory::getApplication();
+        $text = \Fg\Component\Fgsystemreport\Administrator\Helper\QuotaProbeHelper::run();
+        $app->setUserState('com_fgsystemreport.quotaprobe', $text === '' ? '-' : $text);
+        $app->redirect(Route::_('index.php?option=com_fgsystemreport&view=diskusage', false));
+    }
+
+    /**
      * Mark a Security Check finding as an accepted risk (POST, core.admin).
      *
      * @return  void

@@ -28,6 +28,16 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.17]
+
+### Added - hosting quota diagnostic (Disk usage page)
+- A button "Read hosting quota (diagnostic)" (core.admin) runs a few fixed,
+  read-only commands (`quota`, `df`, a look for the quota tools) and shows
+  their raw output on the Disk usage page. PHP cannot read the quota of a
+  hosting account by itself; this shows whether the server tells it at all,
+  and in which format. Nothing is saved and no input goes into the commands.
+  When `exec()` is disabled it says so.
+
 ## [1.18.16]
 
 ### Changed - "Free disk space" with a hosting quota
