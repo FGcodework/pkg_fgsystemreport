@@ -28,6 +28,15 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
+## [1.18.15]
+
+### Fixed - no "Options" button
+- The component had no way to open its settings from the pages (the "Options"
+  button was missing), so the new hosting quota, the disk scan limits and the
+  growth alerts could be reached only by typing the address. The button is now
+  in the toolbar of every page for users who may change the component's
+  options (core.admin).
+
 ## [1.18.14]
 
 ### Added - early warning before the hosting quota is full

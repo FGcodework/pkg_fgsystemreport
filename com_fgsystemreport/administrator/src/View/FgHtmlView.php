@@ -13,6 +13,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as JoomlaHtmlView;
+use Joomla\CMS\Toolbar\ToolbarHelper;
 use Joomla\CMS\Uri\Uri;
 
 /**
@@ -51,6 +52,18 @@ class FgHtmlView extends JoomlaHtmlView
             parent::display($tpl);
         } finally {
             $out = (string) ob_get_clean();
+        }
+
+        // The "Options" button (component settings: disk scan, quota, growth alerts,
+        // permissions) on every page; the page's own buttons were added during display().
+        if ($this->fgChrome) {
+            try {
+                if (Factory::getApplication()->getIdentity()->authorise('core.admin', 'com_fgsystemreport')) {
+                    ToolbarHelper::preferences('com_fgsystemreport');
+                }
+            } catch (\Throwable $e) {
+                // no Options button, the page itself still works
+            }
         }
 
         echo '<div class="fgsr">' . ($this->fgChrome ? $this->fgHeader() : '') . $out . '</div>';
