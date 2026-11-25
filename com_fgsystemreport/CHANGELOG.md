@@ -28,17 +28,26 @@ below. Check this line when auditing for known TCPDF CVEs; update the
 `administrator/assets/library/TCPDF/library/VERSION` file's value here
 too whenever it's bumped again, so this note doesn't go stale.)
 
-## [1.18.17]
+## [1.18.18]
 
-### Added - hosting quota diagnostic (Disk usage page)
-- A button "Read hosting quota (diagnostic)" (core.admin) runs a few fixed,
-  read-only commands (`quota`, `df`, a look for the quota tools) and shows
-  their raw output on the Disk usage page. PHP cannot read the quota of a
-  hosting account by itself; this shows whether the server tells it at all,
-  and in which format. Nothing is saved and no input goes into the commands.
-  When `exec()` is disabled it says so.
+Also covers the intermediate builds 1.18.14 - 1.18.17, which were never kept as
+separate releases.
 
-## [1.18.16]
+### Added - early warning before the hosting quota is full
+- **Hosting quota** (Security Check, "PHP and server"): PHP cannot read the
+  quota of a hosting account (`disk_free_space()` reports the whole disk, which
+  on shared hosting is huge; tried on a real hosting: `quota` is not available
+  to PHP and `df` shows the shared data disk), so it is entered in the
+  component options - "Hosting quota (MB)" and, if needed, "Other use of the
+  quota (MB)" for what the quota counts but the Disk usage scan does not see
+  (database, mailboxes). The row shows used / quota in percent, amber from 80 %
+  and red from 90 %. The size of the site is taken from the last Disk usage
+  scan (the row says when it ran); it never starts a scan by itself. Without a
+  quota the row is only an info that says where to enter it.
+- **Write test (tmp and logs)**: really writes 4 KB into the Joomla `tmp` and
+  `logs` folders and removes the file. A full quota or disk, or wrong folder
+  permissions, is shown as a red finding at once instead of as a failed update
+  or a site that stops working.
 
 ### Changed - "Free disk space" with a hosting quota
 - When a hosting quota is entered in the options, a healthy "Free disk space"
@@ -48,31 +57,12 @@ too whenever it's bumped again, so this note doesn't go stale.)
   500 MB) is still a warning or critical finding, because writes then fail
   whatever the quota says.
 
-## [1.18.15]
-
 ### Fixed - no "Options" button
 - The component had no way to open its settings from the pages (the "Options"
-  button was missing), so the new hosting quota, the disk scan limits and the
+  button was missing), so the hosting quota, the disk scan limits and the
   growth alerts could be reached only by typing the address. The button is now
   in the toolbar of every page for users who may change the component's
   options (core.admin).
-
-## [1.18.14]
-
-### Added - early warning before the hosting quota is full
-- **Hosting quota** (Security Check, "PHP and server"): PHP cannot read the
-  quota of a hosting account (`disk_free_space()` reports the whole disk, which
-  on shared hosting is huge), so it is entered in the component options -
-  "Hosting quota (MB)" and, if needed, "Other use of the quota (MB)" for what
-  the quota counts but the Disk usage scan does not see (database, mailboxes).
-  The row shows used / quota in percent, amber from 80 % and red from 90 %.
-  The size of the site is taken from the last Disk usage scan (the row says
-  when it ran); it never starts a scan by itself. Without a quota the row is
-  only an info that says where to enter it.
-- **Write test (tmp and logs)**: really writes 4 KB into the Joomla `tmp` and
-  `logs` folders and removes the file. A full quota or disk, or wrong folder
-  permissions, is shown as a red finding at once instead of as a failed update
-  or a site that stops working.
 
 ## [1.18.13]
 

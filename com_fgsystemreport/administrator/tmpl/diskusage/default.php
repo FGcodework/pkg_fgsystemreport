@@ -56,32 +56,9 @@ $rescanUrl = 'index.php?option=com_fgsystemreport&view=diskusage&rescan=1&' . \J
                 </button>
                 <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
             </form>
-            <form method="post" action="index.php?option=com_fgsystemreport&amp;task=fgsystemreport.quotaProbe" class="d-inline m-0">
-                <button type="submit" class="btn btn-sm btn-outline-secondary" title="<?php echo $this->escape(Text::_('COM_FGSYSTEMREPORT_QUOTAPROBE_TIP')); ?>">
-                    <span class="icon-search me-1" aria-hidden="true"></span><?php echo Text::_('COM_FGSYSTEMREPORT_QUOTAPROBE_BUTTON'); ?>
-                </button>
-                <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
-            </form>
             <?php endif; ?>
         </div>
     </div>
-    <?php
-    $probeApp  = \Joomla\CMS\Factory::getApplication();
-    $probeText = (string) $probeApp->getUserState('com_fgsystemreport.quotaprobe', '');
-
-    if ($probeText !== '') :
-        $probeApp->setUserState('com_fgsystemreport.quotaprobe', null);
-        ?>
-    <div class="card-body border-bottom">
-        <h4 style="font-size:15px;"><?php echo Text::_('COM_FGSYSTEMREPORT_QUOTAPROBE_TITLE'); ?></h4>
-        <?php if ($probeText === '-') : ?>
-            <p class="mb-0"><?php echo Text::_('COM_FGSYSTEMREPORT_QUOTAPROBE_DISABLED'); ?></p>
-        <?php else : ?>
-            <p class="small text-muted"><?php echo Text::_('COM_FGSYSTEMREPORT_QUOTAPROBE_HELP'); ?></p>
-            <pre class="mb-0" style="white-space:pre-wrap;user-select:all;"><?php echo htmlspecialchars($probeText, ENT_QUOTES, 'UTF-8'); ?></pre>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
     <div class="card-body">
         <form method="get" action="index.php" class="row g-2 align-items-end mb-3">
             <input type="hidden" name="option" value="com_fgsystemreport">
